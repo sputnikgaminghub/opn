@@ -1,0 +1,40 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/tokenomics" data-cta="cta_view_tokenomics_app" data-cta-position="hero">View tokenomics in the app</a>
+    <a class="btn ghost" href="/learn/roadmap" data-cta="cta_view_roadmap" data-cta-position="hero_secondary">See the roadmap</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Supply & network</h2>
+  <ul class="bullets">
+    <li><strong>Total supply:</strong> 1,000,000,000 OPN</li>
+    <li><strong>Network:</strong> Ethereum</li>
+    <li><strong>Decimals:</strong> 18</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Allocation</h2>
+  <ul class="bullets">
+    <li><strong>40%</strong> — Ecosystem & Development (400,000,000 OPN)</li>
+    <li><strong>20%</strong> — Community & Airdrop (200,000,000 OPN)</li>
+    <li><strong>15%</strong> — Team & Advisors (150,000,000 OPN)</li>
+    <li><strong>15%</strong> — Liquidity & Exchange (150,000,000 OPN)</li>
+    <li><strong>10%</strong> — Marketing & Partnerships (100,000,000 OPN)</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Vesting schedule</h2>
+  <ul class="bullets">
+    <li><strong>Team & Advisors:</strong> 6-month cliff, then 24-month linear vesting</li>
+    <li><strong>Ecosystem & Development:</strong> released quarterly based on milestones</li>
+    <li><strong>Presale tokens:</strong> 25% at TGE, 75% vested over 3 months</li>
+  </ul>
+</section>
+{% endblock %}

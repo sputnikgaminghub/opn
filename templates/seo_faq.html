@@ -1,0 +1,43 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+</section>
+
+<section class="card">
+  <h2>Quick answers</h2>
+  <div class="faq">
+    <details>
+      <summary>How much is the base airdrop?</summary>
+      <p>Base airdrop is 1005 OPN per wallet (one claim per wallet).</p>
+    </details>
+    <details>
+      <summary>Do link clicks count as referrals?</summary>
+      <p>No. Referrals only count when someone completes a claim using your referral code.</p>
+    </details>
+    <details>
+      <summary>How many referrals do I need to withdraw?</summary>
+      <p>You need 7 successful referrals to unlock withdrawals.</p>
+    </details>
+    <details>
+      <summary>When do withdrawals open?</summary>
+      <p>If withdrawals are not open yet, the app shows the configured open date. The current default configuration targets 20th February 2026.</p>
+    </details>
+    <details>
+      <summary>What payment options exist for presale?</summary>
+      <p>The app supports manual ETH contributions, a Web3 gateway (ETH/BNB/USDT ERC20/BEP20), and an optional Solana path if configured.</p>
+    </details>
+    <details>
+      <summary>What will you never ask me for?</summary>
+      <p>We will never ask for your seed phrase, private key, or recovery words. Don’t share them with anyone.</p>
+    </details>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Next step</h2>
+  <p>If you want to see your live status and totals, use the airdrop dashboard in the app.</p>
+  <a class="btn primary" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="footer">Open airdrop</a>
+</section>
+{% endblock %}

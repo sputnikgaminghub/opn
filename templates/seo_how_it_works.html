@@ -1,0 +1,62 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="hero">Start with your wallet</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="hero_secondary">Safety notes</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>End-to-end flow</h2>
+  <ol class="bullets">
+    <li><strong>Open the app</strong> and choose Airdrop or Presale.</li>
+    <li><strong>Airdrop:</strong> enter your Ethereum wallet → check eligibility → (optional) claim.</li>
+    <li><strong>Dashboard:</strong> view referral code, stats, achievements, and withdrawals progress.</li>
+    <li><strong>Presale:</strong> use the calculator → pick a payment method → follow the instructions shown in-app.</li>
+  </ol>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>Airdrop totals</h2>
+    <p>Your airdrop total is built from multiple components:</p>
+    <ul class="bullets">
+      <li>Base amount: <strong>1005 OPN</strong></li>
+      <li>Referrals: <strong>121 OPN</strong> per successful referral</li>
+      <li>Achievement bonuses (milestones)</li>
+      <li>Approved task points</li>
+      <li>Claim-window earnings (optional)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Tasks (proof-based)</h2>
+    <p>The app supports a task system where you submit a proof URL. Submissions are reviewed and can be approved or declined:</p>
+    <ul class="bullets">
+      <li>One submission per task (resubmission allowed only if declined).</li>
+      <li>Approved tasks move into a completed archive.</li>
+      <li>Task points accumulate and are displayed on your dashboard.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Withdrawals</h2>
+    <p>Withdrawals are gated to protect the system:</p>
+    <ul class="bullets">
+      <li>Referral requirement: <strong>7 referrals</strong></li>
+      <li>Open date (shown in-app)</li>
+      <li>Optional network fee validation (ETH / BNB)</li>
+    </ul>
+    <a class="text-link" href="/learn/withdrawals" data-cta="cta_view_withdrawals" data-cta-position="mid_card">Withdrawals details →</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Next step</h2>
+  <p>If you’re ready, start by checking eligibility in the airdrop section. Everything else (referrals, achievements, withdrawals) becomes available from your dashboard.</p>
+  <a class="btn primary" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="footer">Open airdrop</a>
+</section>
+{% endblock %}

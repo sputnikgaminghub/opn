@@ -1,0 +1,71 @@
+{% extends "stake/layout.html" %}
+{% block stake_content %}
+<div class="stake-card" style="margin-top:18px;">
+  <div class="stake-spread">
+    <div>
+      <div class="stake-label">Admin</div>
+      <div style="font-weight:850;font-size:20px;margin-top:6px;">Staking withdrawals</div>
+      <div class="stake-subt">Approve / reject / mark paid.</div>
+    </div>
+    <form method="post" action="/admin/staking/logout">
+      <button class="stake-btn" type="submit">Logout</button>
+    </form>
+  </div>
+</div>
+
+<div class="stake-card" style="margin-top:14px;">
+  <div class="stake-table-wrap">
+    <table class="stake-table">
+      <thead>
+        <tr><th>ID</th><th>Wallet</th><th>Type</th><th>Amount</th><th>Destination</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for w in items %}
+        <tr>
+          <td class="stake-mono">{{ w.id }}</td>
+          <td class="stake-mono">{{ w.wallet[:6] }}…{{ w.wallet[-4:] }}</td>
+          <td><span class="stake-badge">{{ w.type }}</span></td>
+          <td class="stake-mono">{{ w.amount }}</td>
+          <td class="stake-mono">{{ w.destination_address[:10] }}…</td>
+          <td>
+            {% if w.status == "paid" %}
+              <span class="stake-badge ok">paid</span>
+            {% elif w.status == "approved" %}
+              <span class="stake-badge ok">approved</span>
+            {% elif w.status == "rejected" %}
+              <span class="stake-badge bad">rejected</span>
+            {% else %}
+              <span class="stake-badge warn">submitted</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="stake-row" style="gap:8px;align-items:flex-start;">
+              {% if w.status == "submitted" %}
+                <form method="post" action="/admin/staking/withdrawals/{{ w.id }}/approve" class="stake-row">
+                  <input class="stake-input" name="note" placeholder="note" style="max-width:180px;">
+                  <button class="stake-btn primary" type="submit">Approve</button>
+                </form>
+                <form method="post" action="/admin/staking/withdrawals/{{ w.id }}/reject" class="stake-row">
+                  <input class="stake-input" name="note" placeholder="reason" style="max-width:180px;">
+                  <button class="stake-btn" type="submit">Reject</button>
+                </form>
+              {% elif w.status == "approved" %}
+                <form method="post" action="/admin/staking/withdrawals/{{ w.id }}/paid" class="stake-row">
+                  <input class="stake-input" name="payout_tx_hash" placeholder="payout tx hash" style="max-width:180px;">
+                  <input class="stake-input" name="note" placeholder="note" style="max-width:180px;">
+                  <button class="stake-btn primary" type="submit">Mark paid</button>
+                </form>
+              {% else %}
+                <span style="font-size:12px;color:var(--s-muted);">No action</span>
+              {% endif %}
+            </div>
+            {% if w.admin_note %}<div style="font-size:12px;color:var(--s-muted);margin-top:8px;">Note: {{ w.admin_note }}</div>{% endif %}
+            {% if w.payout_tx_hash %}<div style="font-size:12px;color:var(--s-muted);margin-top:6px;">Tx: <span class="stake-mono">{{ w.payout_tx_hash }}</span></div>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

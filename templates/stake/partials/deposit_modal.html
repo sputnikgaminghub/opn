@@ -1,0 +1,77 @@
+<div class="stake-modal-backdrop" id="depositBackdrop">
+  <div class="stake-modal">
+    <div class="stake-spread">
+      <h3 style="margin:0;font-size:18px;">Deposit</h3>
+      <button class="stake-btn" onclick="closeDepositModal()">Close</button>
+    </div>
+    <div style="font-size:12px;color:var(--s-muted);margin-top:6px;">Select asset, enter amount, confirm in MetaMask.</div>
+    <hr class="stake-sep">
+
+    <div class="stake-grid" style="gap:12px;">
+      <div>
+        <div class="stake-label" style="margin-bottom:8px;">Asset</div>
+        <select class="stake-select" id="depAsset">
+          <option value="ETH">ETH (Ethereum)</option>
+          <option value="BNB">BNB (BSC)</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="stake-label" style="margin-bottom:8px;">Amount</div>
+        <input class="stake-input" id="depAmount" placeholder="e.g. 0.05">
+      </div>
+
+      <button class="stake-btn primary" id="depBtn" onclick="startDeposit()">Confirm deposit in wallet</button>
+      <div style="font-size:12px;color:var(--s-muted);">This sends a native transfer to the holding wallet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDepositModal(){ document.getElementById("depositBackdrop").style.display = "flex"; }
+function closeDepositModal(){ document.getElementById("depositBackdrop").style.display = "none"; }
+
+async function startDeposit(){
+  const btn = document.getElementById("depBtn");
+  try{
+    if(!window.ethereum){ stakeToast("MetaMask required","Please install MetaMask.","bad"); return; }
+    stakeSetBtnLoading(btn, true, "Waiting for wallet...");
+
+    const asset = document.getElementById("depAsset").value;
+    const amountStr = document.getElementById("depAmount").value;
+    const valueHex = decimalToWeiHex(amountStr);
+
+    const accounts = await window.ethereum.request({ method:"eth_requestAccounts" });
+    const from = accounts[0];
+
+    let to, chainId, chainLabel;
+    if(asset === "ETH"){ to = "{{ holding_eth }}"; chainId = ETH_CHAIN_ID; chainLabel="ETH"; }
+    else { to = "{{ holding_bsc }}"; chainId = BSC_CHAIN_ID; chainLabel="BSC"; }
+
+    await ensureChain(chainId);
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{ from, to, value: valueHex }]
+    });
+
+    stakeToast("Transaction sent", txHash.slice(0,12) + "…", "ok");
+
+    await fetch("/api/stake/deposits/announce", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ chain: chainLabel, asset, tx_hash: txHash })
+    });
+
+    stakeToast("Deposit pending", "Will confirm after enough blocks.", "ok");
+    closeDepositModal();
+    if(window.location.pathname.startsWith("/stake/dashboard")){
+      setTimeout(()=>window.location.reload(), 700);
+    }
+  }catch(e){
+    stakeToast("Deposit failed", e.message, "bad");
+  }finally{
+    stakeSetBtnLoading(btn, false);
+  }
+}
+</script>

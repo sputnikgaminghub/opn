@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Announcements</title>
+  <script src="/static/theme.js?v={{ static_ver }}"></script>
+  <style>
+    body{font-family:Arial, sans-serif; padding:20px; background:var(--background,#0b1220); color:var(--text-primary,#e6e8ee)}
+    a{color:var(--secondary,#7aa2ff)}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{background:var(--card-bg,rgba(255,255,255,0.06)); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:16px; flex:1; min-width:320px}
+    h1,h2{margin:0 0 12px 0}
+    label{display:block; font-size:13px; margin:10px 0 6px; color:var(--text-secondary,#b9c0d4)}
+    input,textarea,select{width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.25); color:var(--text-primary,#e6e8ee)}
+    textarea{min-height:180px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    button{padding:10px 12px; border-radius:10px; border:0; background:var(--primary,#4c7dff); color:#0b1020; cursor:pointer; font-weight:800}
+    button.secondary{background:rgba(255,255,255,0.10); color:var(--text-primary,#e6e8ee)}
+    button.danger{background:var(--error,#e05a5a); color:#fff}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,0.12); vertical-align:top}
+    .muted{color:var(--text-secondary,#b9c0d4)}
+    .actions{display:flex; gap:8px; flex-wrap:wrap}
+    .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px}
+    .pill{border:1px solid rgba(255,255,255,0.15); padding:6px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,0.06)}
+    .tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,0.18)}
+    .tag.critical{background:rgba(255, 204, 0, 0.12); color:#ffd56a; border-color:rgba(255, 204, 0, 0.25)}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Admin • Announcements</h1>
+    <div class="pill">
+      Quick links:
+      <a href="/admin/tasks?key={{ request.args.get('key','') }}">Tasks</a> •
+      <a href="/admin/withdrawals?key={{ request.args.get('key','') }}">Withdrawals</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Create / Update Announcement</h2>
+      <p class="muted">Body supports Markdown (links, lists, code, etc.).</p>
+      <input type="hidden" id="editId" />
+
+      <label>Title</label>
+      <input id="title" placeholder="e.g. Claim window is now live" />
+
+      <label>Type</label>
+      <select id="type">
+        <option value="normal" selected>Normal (drawer only)</option>
+        <option value="critical">Critical (drawer + top banner)</option>
+      </select>
+
+      <div class="row" style="gap:12px">
+        <div style="flex:1">
+          <label>Active</label>
+          <select id="is_active">
+            <option value="true" selected>Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Pinned</label>
+          <select id="is_pinned">
+            <option value="false" selected>No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="gap:12px">
+        <div style="flex:1">
+          <label>Starts at (optional, ISO)</label>
+          <input id="starts_at" placeholder="2026-02-08T12:00:00" />
+        </div>
+        <div style="flex:1">
+          <label>Ends at (optional, ISO)</label>
+          <input id="ends_at" placeholder="2026-02-10T12:00:00" />
+        </div>
+      </div>
+
+      <label>Body (Markdown)</label>
+      <textarea id="body_md" placeholder="Write Markdown here…"></textarea>
+
+      <div class="actions" style="margin-top:12px">
+        <button id="saveBtn">Save</button>
+        <button class="secondary" id="resetBtn" type="button">Reset</button>
+        <button class="danger" id="deleteBtn" type="button" style="display:none">Delete</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Announcements</h2>
+      <div id="tableWrap">Loading…</div>
+    </div>
+  </div>
+
+  {% include "partials/announcements_widget.html" %}
+{% include "partials/a2hs_widget.html" %}
+
+<script>
+  const qs = (s)=>document.querySelector(s);
+  const esc = (s)=>(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+
+  async function api(url, opts={}){
+    const res = await fetch(url, {
+      headers: { 'Content-Type':'application/json' },
+      credentials: 'same-origin',
+      ...opts
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || data.success===false){
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+    return data;
+  }
+
+  function resetForm(){
+    qs('#editId').value='';
+    qs('#title').value='';
+    qs('#type').value='normal';
+    qs('#is_active').value='true';
+    qs('#is_pinned').value='false';
+    qs('#starts_at').value='';
+    qs('#ends_at').value='';
+    qs('#body_md').value='';
+    qs('#deleteBtn').style.display='none';
+  }
+
+  function fillForm(a){
+    qs('#editId').value=a.id;
+    qs('#title').value=a.title||'';
+    qs('#type').value=a.type||'normal';
+    qs('#is_active').value=String(!!a.is_active);
+    qs('#is_pinned').value=String(!!a.is_pinned);
+    qs('#starts_at').value=a.starts_at||'';
+    qs('#ends_at').value=a.ends_at||'';
+    qs('#body_md').value=a.body_md||'';
+    qs('#deleteBtn').style.display='inline-block';
+  }
+
+  async function refreshTable(){
+    const d = await api('/api/admin/announcements');
+    const anns = d.announcements || [];
+
+    qs('#tableWrap').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Active</th>
+            <th>Pinned</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${anns.map(a=>`
+            <tr>
+              <td>${a.id}</td>
+              <td>${esc(a.title)}</td>
+              <td>${a.type==='critical' ? '<span class="tag critical">critical</span>' : '<span class="tag">normal</span>'}</td>
+              <td>${a.is_active ? 'Yes' : 'No'}</td>
+              <td>${a.is_pinned ? 'Yes' : 'No'}</td>
+              <td class="actions">
+                <button class="secondary" data-edit="${a.id}">Edit</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    qs('#tableWrap').querySelectorAll('button[data-edit]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = Number(btn.getAttribute('data-edit'));
+        const a = anns.find(x=>x.id===id);
+        if(a) fillForm(a);
+      };
+    });
+  }
+
+  qs('#saveBtn').onclick = async ()=>{
+    const id = qs('#editId').value;
+    const payload = {
+      title: qs('#title').value,
+      type: qs('#type').value,
+      is_active: qs('#is_active').value==='true',
+      is_pinned: qs('#is_pinned').value==='true',
+      starts_at: qs('#starts_at').value || null,
+      ends_at: qs('#ends_at').value || null,
+      body_md: qs('#body_md').value
+    };
+
+    if(id){
+      await api(`/api/admin/announcements/${id}`, { method:'PUT', body: JSON.stringify(payload)});
+    }else{
+      await api('/api/admin/announcements', { method:'POST', body: JSON.stringify(payload)});
+    }
+    resetForm();
+    await refreshTable();
+    alert('Saved');
+  };
+
+  qs('#deleteBtn').onclick = async ()=>{
+    const id = qs('#editId').value;
+    if(!id) return;
+    if(!confirm('Delete this announcement?')) return;
+    await api(`/api/admin/announcements/${id}`, { method:'DELETE' });
+    resetForm();
+    await refreshTable();
+  };
+
+  qs('#resetBtn').onclick = resetForm;
+
+  resetForm();
+  refreshTable().catch(e=>{
+    console.error(e);
+    qs('#tableWrap').textContent = e.message;
+  });
+</script>
+</body>
+</html>

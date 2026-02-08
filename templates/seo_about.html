@@ -1,0 +1,132 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/learn/how-it-works" data-cta="about_cta_how_it_works" data-cta-position="hero">How it works</a>
+    <a class="btn ghost" href="/learn/contact" data-cta="about_cta_contact" data-cta-position="hero_secondary">Contact us</a>
+  </div>
+</section>
+
+<section class="card" aria-label="About Opinion introduction">
+  <p style="font-size:16px;margin:0">
+    We are building <strong>OPN</strong>: Opinion is building a prediction exchange that enables direct trading of
+    macroeconomic data, predictions, and news as standardized assets, leveraging 
+    proprietary on-chain infrastructure, AI Oracle, and trading tools to create new
+    opportunities for retail users, institutions, and global decision makers in 
+    democratizing economic insights and risk management.
+  </p>
+</section>
+
+<section class="grid" aria-label="Value pillars">
+  <div class="card">
+    <h2>Cheaper</h2>
+    <p>Reduce operational overhead by standardizing claims, rewards, and audits in a single, verifiable workflow.</p>
+    <ul class="bullets">
+      <li>Fewer manual reconciliations</li>
+      <li>Clear, machine-readable accounting</li>
+      <li>Configurable reward rules</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Faster</h2>
+    <p>Move from announcement → participation → distribution with shorter loops and fewer points of failure.</p>
+    <ul class="bullets">
+      <li>Self-serve onboarding</li>
+      <li>Automated eligibility checks</li>
+      <li>Real-time dashboards</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Better</h2>
+    <p>Design for adversarial conditions: phishing, sybil attempts, and noisy data are treated as defaults—not edge cases.</p>
+    <ul class="bullets">
+      <li>Security-first UX patterns</li>
+      <li>Evidence-driven claims</li>
+      <li>Event logging for audits</li>
+    </ul>
+  </div>
+</section>
+
+<section class="card" aria-label="Mission">
+  <h2>Our mission</h2>
+  <p>
+    The OPN token functions as the core utility token of the Opinion ecosystem, enabling access to platform services, governance participation, and network value capture.
+  </p>
+  <div class="pill-row" style="margin-top:12px">
+    <span class="pill" aria-label="Principle">Proof-first</span>
+    <span class="pill" aria-label="Principle">Open participation</span>
+    <span class="pill" aria-label="Principle">Composable tooling</span>
+    <span class="pill" aria-label="Principle">Security by default</span>
+  </div>
+</section>
+
+<section class="grid" aria-label="What we build">
+  <div class="card">
+    <h2>Opinion (OPN) Learn</h2>
+    <p>
+      A public-facing education layer that documents eligibility, rules, and safety guidance—so users can self-verify without relying on DMs.
+    </p>
+    <a class="text-link" href="/learn" data-cta="about_cta_learn" data-cta-position="card">Explore Learn →</a>
+  </div>
+  <div class="card">
+    <h2>Rewards engine</h2>
+    <p>
+      A flexible accounting system for campaigns: base allocations, referrals, achievements, tasks, and time-window modifiers.
+    </p>
+    <a class="text-link" href="/learn/airdrop" data-cta="about_cta_airdrop" data-cta-position="card">Airdrop guide →</a>
+  </div>
+  <div class="card">
+    <h2>Integrity controls</h2>
+    <p>
+      Anti-phishing patterns, transparent disclosures, and detection heuristics that reduce the blast radius of common web3 attacks.
+    </p>
+    <a class="text-link" href="/learn/security" data-cta="about_cta_security" data-cta-position="card">Security overview →</a>
+  </div>
+</section>
+
+<section class="card" aria-label="Our story and timeline">
+  <h2>Our story</h2>
+  <p class="muted" style="margin-top:-6px">A simple, template timeline your team can customize.</p>
+
+  <div class="card" style="margin:12px 0 0">
+    <h3 style="margin-top:0">Before the Opinion (OPN) launch</h3>
+    <p>
+      The team saw a repeated failure mode across campaigns: opaque rules, un-auditable distributions, and poor user safety.
+      OPN started as an internal set of tools to standardize eligibility and reduce disputes.
+    </p>
+  </div>
+
+  <div class="card" style="margin:12px 0 0">
+    <h3 style="margin-top:0">Prototype phase</h3>
+    <p>
+      We built the first public dashboards, added referral attribution, and implemented basic integrity checks for common abuse patterns.
+    </p>
+  </div>
+
+  <div class="card" style="margin:12px 0 0">
+    <h3 style="margin-top:0">Today</h3>
+    <p>
+      OPN focuses on making token operations easier to understand and harder to exploit, with a clean “Learn” layer for documentation
+      and a production app for participation and accounting.
+    </p>
+  </div>
+</section>
+
+<section class="card" aria-label="Transparency and disclaimers">
+  <h2>Transparency</h2>
+  <p>
+    OPN may publish program rules, allocation methods, and security notices. These materials are informational and do not constitute legal,
+    financial, or investment advice. Always verify links, contract addresses, and announcements through official channels.
+  </p>
+</section>
+
+<section class="card" aria-label="Get in touch">
+  <h2>Get in touch</h2>
+  <p>
+    For partnerships, media, or support, visit the contact page.
+  </p>
+  <a class="btn primary" href="/learn/contact" data-cta="about_cta_contact_bottom" data-cta-position="footer">Contact us</a>
+</section>
+{% endblock %}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin • Withdrawals</title>
+  <script src="/static/theme.js?v={{ static_ver }}"></script>
+    <style>
+    body{font-family:Arial, sans-serif; padding:20px; background:var(--background,#0b1220); color:var(--text-primary,#e6e8ee)}
+    a{color:var(--secondary,#7aa2ff)}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{background:var(--card-bg,rgba(255,255,255,0.06)); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:16px; flex:1; min-width:320px}
+    h1,h2{margin:0 0 12px 0}
+    label{display:block; font-size:13px; margin:10px 0 6px; color:var(--text-secondary,#b9c0d4)}
+    input,textarea,select{width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.25); color:var(--text-primary,#e6e8ee)}
+    textarea{min-height:90px}
+    button{padding:10px 12px; border-radius:10px; border:0; background:var(--primary,#4c7dff); color:#0b1020; cursor:pointer; font-weight:800}
+    button.secondary{background:rgba(255,255,255,0.10); color:var(--text-primary,#e6e8ee)}
+    button.danger{background:var(--error,#e05a5a); color:#fff}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,0.12); vertical-align:top}
+    .badge{padding:4px 8px; border-radius:999px; font-size:12px; display:inline-block}
+    .pending{background:rgba(255,200,0,0.15); color:var(--warning,#ffd56a)}
+    .approved{background:rgba(0,255,140,0.12); color:var(--success,#6affb8)}
+    .declined{background:rgba(255,80,80,0.12); color:var(--error,#ff9a9a)}
+    .muted{color:var(--text-secondary,#b9c0d4)}
+    .actions{display:flex; gap:8px; flex-wrap:wrap}
+    .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px}
+    .pill{border:1px solid rgba(255,255,255,0.15); padding:6px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,0.06)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="title">Admin • Withdrawals</div>
+      <div class="actions">
+        <a class="btn secondary" href="/admin/announcements?key={{ request.args.get('key','') }}">Announcements</a>
+        <a class="btn secondary" href="/admin/tasks?key={{ request.args.get('key','') }}">Tasks</a>
+        <a class="btn secondary" href="/api/admin/withdrawals/export.csv" target="_blank">Export CSV</a>
+        <button class="btn" id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <input id="walletFilter" placeholder="Filter by wallet (optional)" class="mono" />
+        <select id="statusFilter">
+          <option value="">All statuses</option>
+          <option value="queued">Queued</option>
+          <option value="paid">Paid</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select id="chainFilter">
+          <option value="">All chains</option>
+          <option value="eth">ETH</option>
+          <option value="bsc">BSC</option>
+        </select>
+        <button class="btn secondary" id="applyFiltersBtn">Apply</button>
+      </div>
+
+      <div class="muted" id="statusLine" style="margin-bottom:10px;"></div>
+
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Wallet</th>
+              <th>Amount</th>
+              <th>Chain</th>
+              <th>Fee Tx</th>
+              <th>Fee (wei)</th>
+              <th>Confs</th>
+              <th>Status</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function esc(s){return (s||'').toString().replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+    function explorerLink(chain, hash){
+      if(!hash) return '';
+      if(chain==='bsc') return `https://bscscan.com/tx/${hash}`;
+      return `https://etherscan.io/tx/${hash}`;
+    }
+
+    async function load(){
+      const wallet = document.getElementById('walletFilter').value.trim().toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      const chain = document.getElementById('chainFilter').value;
+      const params = new URLSearchParams();
+      if(wallet) params.set('wallet', wallet);
+      if(status) params.set('status', status);
+      if(chain) params.set('chain', chain);
+      document.getElementById('statusLine').textContent = 'Loading…';
+
+      const res = await fetch(`/api/admin/withdrawals?${params.toString()}`);
+      const data = await res.json();
+      if(!data.success){
+        document.getElementById('statusLine').textContent = data.error || 'Failed to load.';
+        return;
+      }
+      document.getElementById('statusLine').textContent = `Showing ${data.withdrawals.length} withdrawals`;
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = '';
+      for(const w of data.withdrawals){
+        const tr = document.createElement('tr');
+        const link = explorerLink(w.chain, w.fee_tx_hash);
+        tr.innerHTML = `
+          <td>${w.id}</td>
+          <td class="mono">${esc(w.wallet)}</td>
+          <td>${w.amount}</td>
+          <td>${(w.chain||'').toUpperCase()}</td>
+          <td class="mono">${link ? `<a href="${link}" target="_blank">${esc(w.fee_tx_hash.slice(0,10))}…</a>` : ''}</td>
+          <td class="mono">${esc(w.fee_value_wei)}</td>
+          <td>${w.fee_confirmations ?? ''}</td>
+          <td><span class="pill ${esc(w.status)}">${esc(w.status)}</span></td>
+          <td>${esc(w.created_at || '')}</td>
+          <td>
+            <div class="rowActions">
+              <button class="tinyBtn green" data-act="paid" data-id="${w.id}">Paid</button>
+              <button class="tinyBtn red" data-act="reject" data-id="${w.id}">Reject</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function act(id, action){
+      const endpoint = action==='paid' ? `/api/admin/withdrawals/${id}/mark-paid` : `/api/admin/withdrawals/${id}/reject`;
+      const res = await fetch(endpoint, {method:'POST'});
+      const data = await res.json();
+      if(!data.success){
+        alert(data.error || 'Action failed');
+        return;
+      }
+      await load();
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', load);
+    document.getElementById('applyFiltersBtn').addEventListener('click', load);
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-act]');
+      if(!btn) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-act');
+      act(id, action);
+    });
+
+    load();
+  </script>
+
+  {% include "partials/announcements_widget.html" %}
+{% include "partials/a2hs_widget.html" %}
+</body>
+</html>

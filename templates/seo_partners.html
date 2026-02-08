@@ -1,0 +1,30 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/partners" data-cta="cta_view_partners_app" data-cta-position="hero">View partners in the app</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="hero_secondary">Security</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Strategic partnerships</h2>
+  <ul class="bullets">
+    <li><strong>Ethereum Foundation:</strong> blockchain infrastructure partnership</li>
+    <li><strong>CertiK:</strong> smart contract security audit</li>
+    <li><strong>Chainlink:</strong> oracle & data feeds</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Exchange partners (planned / referenced)</h2>
+  <ul class="bullets">
+    <li>Uniswap</li>
+    <li>PancakeSwap</li>
+    <li>Gate.io</li>
+    <li>KuCoin</li>
+  </ul>
+</section>
+{% endblock %}

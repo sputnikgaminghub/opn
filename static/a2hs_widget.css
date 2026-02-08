@@ -1,0 +1,90 @@
+#a2hs-overlay{
+  position:fixed;
+  inset:0;
+  z-index:99996;
+  background:rgba(0,0,0,.45);
+}
+
+#a2hs-sheet{
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:calc(var(--mobile-nav-height, 0px) + 14px + env(safe-area-inset-bottom));
+  max-width:520px;
+  margin:0 auto;
+  background:#fff;
+  border-radius:18px;
+  padding:14px 14px 12px 14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+}
+
+.a2hs-hidden{display:none;}
+
+.a2hs-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.a2hs-title{
+  font-weight:700;
+  font-size:16px;
+}
+
+.a2hs-close{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  border:0;
+  background:rgba(0,0,0,.06);
+  cursor:pointer;
+  font-size:18px;
+  line-height:32px;
+}
+
+.a2hs-text{
+  font-size:14px;
+  opacity:.85;
+  margin:0 0 12px 0;
+}
+
+.a2hs-actions{
+  display:flex;
+  gap:10px;
+}
+
+.a2hs-btn{
+  flex:1;
+  border-radius:12px;
+  padding:10px 12px;
+  border:0;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.a2hs-primary{
+  background:#111;
+  color:#fff;
+}
+
+.a2hs-secondary{
+  background:rgba(0,0,0,.08);
+  color:#111;
+}
+
+#a2hs-ios-instructions{
+  margin-top:12px;
+}
+
+.a2hs-ios-title{
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.a2hs-ios-steps{
+  margin:0 0 10px 18px;
+  padding:0;
+  font-size:14px;
+}

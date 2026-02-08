@@ -1,0 +1,80 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="hero">Check eligibility in the app</a>
+    <a class="btn ghost" href="/learn/how-it-works" data-cta="cta_view_how_it_works" data-cta-position="hero_secondary">See the full walkthrough</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>What you get</h2>
+  <ul class="bullets">
+    <li><strong>Base airdrop:</strong> 1005 OPN (once per wallet).</li>
+    <li><strong>Referral bonus:</strong> +121 OPN for each successful referral (a claim completed using your referral code).</li>
+    <li><strong>Achievement rewards:</strong> bonus OPN unlocked at referral milestones.</li>
+    <li><strong>Task points:</strong> approved tasks add points that are counted toward your total.</li>
+    <li><strong>Claim-window earnings:</strong> optional small recurring rewards for active users.</li>
+  </ul>
+  <p class="muted">Your exact totals are calculated inside the app after you enter your wallet address.</p>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>How eligibility works</h2>
+    <p>The app validates the wallet format, checks whether the wallet already claimed, and applies basic anti-abuse limits.</p>
+    <ul class="bullets">
+      <li>Wallet addresses must be valid Ethereum addresses.</li>
+      <li>If the wallet has already claimed, the dashboard shows your claim breakdown (base, referral bonus, achievements, and more).</li>
+      <li>Anti-abuse protections can restrict repeated account creation from the same IP/device.</li>
+    </ul>
+    <a class="text-link" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="mid_card">Open the eligibility checker →</a>
+  </div>
+
+  <div class="card">
+    <h2>Referral mechanics</h2>
+    <ul class="bullets">
+      <li>You earn bonuses only when a referred user <strong>successfully claims</strong> (clicks alone don’t count).</li>
+      <li>Your account is marked “active” once you reach <strong>2+ referrals</strong> (used for dashboard stats).</li>
+      <li>Withdrawals unlock once you hit the referral requirement (see withdrawals page for details).</li>
+    </ul>
+    <a class="text-link" href="/learn/referral-program" data-cta="cta_view_referral_program" data-cta-position="mid_card">Read the referral guide →</a>
+  </div>
+
+  <div class="card">
+    <h2>Achievements (milestone bonuses)</h2>
+    <p>Achievements are automatic. As your referral count grows, bonuses can unlock:</p>
+    <ul class="bullets">
+      <li>🚀 <strong>Airdrop Pioneer</strong> — 1 OPN</li>
+      <li>🥇 <strong>First Referral</strong> (1+) — 11 OPN</li>
+      <li>🌐 <strong>Network Builder</strong> (3+) — 111 OPN</li>
+      <li>🏆 <strong>Referral Master</strong> (5+) — 500 OPN</li>
+      <li>💰 <strong>Ready to Cash Out</strong> (6+) — 1500 OPN</li>
+    </ul>
+    <p class="muted">The dashboard shows which achievements you’ve unlocked and what’s next.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Claim-window earnings (optional)</h2>
+  <p>The app includes a timed “claim window” feature designed to reward active participation:</p>
+  <ul class="bullets">
+    <li>Cooldown: typically <strong>6 hours</strong> between claims.</li>
+    <li>Base reward: typically <strong>1 OPN</strong> per claim, plus streak bonuses.</li>
+    <li>Daily cap: typically <strong>4 claims per day</strong> (UTC day).</li>
+    <li>Streak bonuses: examples include day 3 (+3), day 7 (+10), day 14 (+25), day 30 (+60).</li>
+  </ul>
+  <p class="muted">Exact values will be subject to change by the project; the app displays the current settings live.</p>
+</section>
+
+<section class="card">
+  <h2>Next step</h2>
+  <p>Ready to check your status? Enter your wallet in the airdrop section to view your dashboard, referral code, and progress.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="footer">Go to the airdrop dashboard</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="footer_secondary">Safety & security notes</a>
+  </div>
+</section>
+{% endblock %}

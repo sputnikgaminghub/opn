@@ -1,0 +1,29 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/team" data-cta="cta_view_team_app" data-cta-position="hero">View the team in the app</a>
+    <a class="btn ghost" href="/learn/contact" data-cta="cta_contact_support" data-cta-position="hero_secondary">Contact</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Core team (as shown in the app)</h2>
+  <ul class="bullets">
+    <li><strong>Forrest Liu</strong> — CEO & Founder (10+ years in blockchain technology)</li>
+    <li><strong>Mr White</strong> — CTO (Blockchain developer & Ethereum expert)</li>
+    <li><strong>Timur Kartashov</strong> — Marketing Director (Crypto marketing specialist)</li>
+  </ul>
+  <p class="muted">More team members will be updated as the project grows.</p>
+</section>
+
+<section class="card">
+  <h2>Advisors</h2>
+  <ul class="bullets">
+    <li><strong>David Wilson</strong> — Blockchain Investment Advisor</li>
+    <li><strong>Lisa Rodriguez</strong> — Legal & Compliance Expert</li>
+  </ul>
+</section>
+{% endblock %}

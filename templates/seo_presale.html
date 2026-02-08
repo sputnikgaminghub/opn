@@ -1,0 +1,66 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/presale" data-cta="cta_view_presale_options" data-cta-position="hero">Open presale in the app</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="hero_secondary">Safety checklist</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Presale tiers (bonus structure)</h2>
+  <ul class="bullets">
+    <li><strong>Tier 1:</strong> 0.1–1 ETH → <strong>+20%</strong> bonus tokens</li>
+    <li><strong>Tier 2:</strong> 1–5 ETH → <strong>+25%</strong> bonus tokens</li>
+    <li><strong>Tier 3:</strong> 5+ ETH → <strong>+30%</strong> bonus tokens</li>
+  </ul>
+  <p class="muted">The calculator in the app estimates tokens received and bonus amounts automatically.</p>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>Token conversion (calculator)</h2>
+    <p>The app uses an internal conversion rate of:</p>
+    <p><strong>1 ETH = 100,000 OPN</strong></p>
+    <p class="muted">The calculator then applies the tier bonus based on your entered amount.</p>
+  </div>
+
+  <div class="card">
+    <h2>Payment methods</h2>
+    <ul class="bullets">
+      <li><strong>Manual:</strong> send ETH from your wallet to the presale address shown in-app.</li>
+      <li><strong>Web3 gateway:</strong> pay with ETH, BNB, or USDT (ERC20 / BEP20).</li>
+      <li><strong>Solana:</strong> optional Solana presale path (shown in-app if configured).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Minimums</h2>
+    <ul class="bullets">
+      <li>Web3 gateway: <strong>$50 minimum</strong> (USD input).</li>
+      <li>NOWPayments donation option: minimum noted in-app (currently <strong>$50</strong>).</li>
+    </ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Verification & records</h2>
+  <p>The platform stores presale transactions and uses network-aware verification logic (e.g., Ethereum vs BSC) when available.</p>
+  <ul class="bullets">
+    <li>Transactions can be recorded with wallet address, amount (USD + crypto), network, and TX hash.</li>
+    <li>The automated presale ledger summarizes totals and recent transactions.</li>
+  </ul>
+  <p class="muted">Always verify you are using the official address shown inside the app before sending funds.</p>
+</section>
+
+<section class="card">
+  <h2>Next step</h2>
+  <p>To contribute, use the presale section inside the app. For general safety and anti-phishing guidance, review the security page first.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/presale" data-cta="cta_view_presale_options" data-cta-position="footer">Open presale</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="footer_secondary">Read security guidance</a>
+  </div>
+</section>
+{% endblock %}

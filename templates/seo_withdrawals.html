@@ -1,0 +1,51 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/airdrop" data-cta="cta_check_withdrawal_requirements" data-cta-position="hero">Check withdrawals in the app</a>
+    <a class="btn ghost" href="/learn/security" data-cta="cta_view_security" data-cta-position="hero_secondary">Avoid scams</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>When withdrawals open</h2>
+  <p>The platform can enforce an “open at” date for withdrawals. If withdrawals are not open yet, the app will show the exact opening date.</p>
+  <p class="muted">Default configuration targets 20th February 2026, but admins can adjust this before production.</p>
+</section>
+
+<section class="card">
+  <h2>Unlock requirement</h2>
+  <ul class="bullets">
+    <li>Withdrawals unlock at <strong>7 referrals</strong>.</li>
+    <li>The Withdrawals tab shows a progress bar (<strong>0/7</strong> → <strong>7/7</strong>).</li>
+    <li>Leaderboard access is available from the same area to help users track top referrers.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Fee model (anti-spam / validation)</h2>
+  <p>The platform supports a small network fee that is validated per-chain (Ethereum / BSC). Default values are:</p>
+  <ul class="bullets">
+    <li><strong>0.00010 ETH</strong> on Ethereum</li>
+    <li><strong>0.0010 BNB</strong> on BSC</li>
+  </ul>
+  <p class="muted">The app shows the active configuration before you submit a withdrawal request.</p>
+</section>
+
+<section class="card">
+  <h2>How the withdrawal flow works</h2>
+  <ol class="bullets">
+    <li>Open the airdrop dashboard and go to the <strong>Withdrawals</strong> tab.</li>
+    <li>Check your status (open date, referral progress, and eligibility).</li>
+    <li>When eligible, submit your withdrawal request. The UI indicates tokens are processed manually after submission.</li>
+  </ol>
+  <a class="btn primary" href="/airdrop" data-cta="cta_check_withdrawal_requirements" data-cta-position="mid">Open withdrawals</a>
+</section>
+
+<section class="card">
+  <h2>Important anti-abuse note</h2>
+  <p>The airdrop page warns that creating multiple accounts on the same device may result in a ban, and that only one account per device is eligible to withdraw.</p>
+</section>
+{% endblock %}

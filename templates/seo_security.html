@@ -1,0 +1,49 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/learn/faq" data-cta="cta_view_faq" data-cta-position="hero">Read common questions</a>
+    <a class="btn ghost" href="/airdrop" data-cta="cta_check_airdrop_eligibility" data-cta-position="hero_secondary">Open the app</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>What the site will never ask you for</h2>
+  <ul class="bullets">
+    <li>Your seed phrase, private key, or recovery words.</li>
+    <li>Remote access to your device or “support” screen-sharing to claim tokens.</li>
+    <li>Signing unexpected approvals you didn’t initiate yourself.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>How the platform reduces abuse</h2>
+  <ul class="bullets">
+    <li><strong>Rate limits</strong> on wallet checks and claims (to reduce spam/bots).</li>
+    <li><strong>IP-based limits</strong> (max wallets per IP) with temporary restrictions on abuse.</li>
+    <li><strong>One-claim-per-wallet</strong> enforcement; repeat checks show “already claimed” and a breakdown.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Withdrawal safety</h2>
+  <ul class="bullets">
+    <li>Withdrawals are gated by referral requirements and an “open at” date.</li>
+    <li>Network fees (when enabled) are small and chain-specific; you should see them clearly in-app before submitting.</li>
+    <li>Always verify URLs and contract/wallet addresses from the official app UI.</li>
+  </ul>
+  <a class="text-link" href="/learn/withdrawals" data-cta="cta_view_withdrawals" data-cta-position="mid_card">Read the withdrawals guide →</a>
+</section>
+
+<section class="card">
+  <h2>Phishing checklist</h2>
+  <ul class="bullets">
+    <li>Type the domain yourself (avoid DMs with “claim now” links).</li>
+    <li>Verify the address shown in-app before sending funds.</li>
+    <li>If anything feels off, stop and contact support via the official contact page.</li>
+  </ul>
+  <a class="btn primary" href="https://t.me/opinion_labsxyz" target="_blank" rel="noopener noreferrer" data-cta="cta_contact_support" data-cta-position="footer">Contact support</a>
+</section>
+{% endblock %}

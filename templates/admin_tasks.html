@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Tasks</title>
+  <script src="/static/theme.js?v={{ static_ver }}"></script>
+    <style>
+    body{font-family:Arial, sans-serif; padding:20px; background:var(--background,#0b1220); color:var(--text-primary,#e6e8ee)}
+    a{color:var(--secondary,#7aa2ff)}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{background:var(--card-bg,rgba(255,255,255,0.06)); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:16px; flex:1; min-width:320px}
+    h1,h2{margin:0 0 12px 0}
+    label{display:block; font-size:13px; margin:10px 0 6px; color:var(--text-secondary,#b9c0d4)}
+    input,textarea,select{width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.25); color:var(--text-primary,#e6e8ee)}
+    textarea{min-height:90px}
+    button{padding:10px 12px; border-radius:10px; border:0; background:var(--primary,#4c7dff); color:#0b1020; cursor:pointer; font-weight:800}
+    button.secondary{background:rgba(255,255,255,0.10); color:var(--text-primary,#e6e8ee)}
+    button.danger{background:var(--error,#e05a5a); color:#fff}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,0.12); vertical-align:top}
+    .badge{padding:4px 8px; border-radius:999px; font-size:12px; display:inline-block}
+    .pending{background:rgba(255,200,0,0.15); color:var(--warning,#ffd56a)}
+    .approved{background:rgba(0,255,140,0.12); color:var(--success,#6affb8)}
+    .declined{background:rgba(255,80,80,0.12); color:var(--error,#ff9a9a)}
+    .muted{color:var(--text-secondary,#b9c0d4)}
+    .actions{display:flex; gap:8px; flex-wrap:wrap}
+    .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px}
+    .pill{border:1px solid rgba(255,255,255,0.15); padding:6px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,0.06)}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Admin • Tasks</h1>
+    <div class="pill">
+      Quick links:
+      <a href="/admin/announcements?key={{ request.args.get('key','') }}">Announcements</a> •
+      <a href="/admin/withdrawals?key={{ request.args.get('key','') }}">Withdrawals</a> •
+      <a href="/admin/presale?key={{ request.args.get('key','') }}">Presale</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Create / Update Task</h2>
+      <p class="muted">Reward is fixed per task (task_points).</p>
+      <input type="hidden" id="editTaskId" />
+      <label>Title</label>
+      <input id="taskTitle" placeholder="e.g. Follow on X" />
+      <label>Description</label>
+      <textarea id="taskDescription" placeholder="What should the user do? What proof URL is acceptable?"></textarea>
+      <label>Task Link (optional)</label>
+      <input id="taskLink" placeholder="https://..." />
+      <label>Reward (task_points)</label>
+      <input id="taskReward" type="number" min="0" value="0" />
+      <label>Active</label>
+      <select id="taskActive">
+        <option value="true" selected>Yes</option>
+        <option value="false">No</option>
+      </select>
+      <div class="actions" style="margin-top:12px">
+        <button id="saveTaskBtn">Save Task</button>
+        <button class="secondary" id="resetTaskBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tasks</h2>
+      <div id="tasksTableWrap">Loading…</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Submissions</h2>
+    <div class="row" style="margin-bottom:12px">
+      <div style="flex:1; min-width:240px">
+        <label>Status</label>
+        <select id="filterStatus">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="declined">Declined</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:240px">
+        <label>Wallet (optional)</label>
+        <input id="filterWallet" placeholder="0x..." />
+      </div>
+      <div style="flex:1; min-width:240px">
+        <label>Task ID (optional)</label>
+        <input id="filterTaskId" type="number" min="1" placeholder="e.g. 1" />
+      </div>
+      <div style="align-self:end">
+        <button id="applyFiltersBtn">Apply</button>
+      </div>
+    </div>
+    <div id="submissionsTableWrap">Loading…</div>
+  </div>
+
+<script>
+  const qs = (sel) => document.querySelector(sel);
+  const escapeHtml = (s) => (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+
+  async function api(url, opts={}){
+    const res = await fetch(url, {
+      headers: { 'Content-Type':'application/json' },
+      credentials: 'same-origin',
+      ...opts
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || data.success===false){
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+    return data;
+  }
+
+  function badge(status){
+    const cls = status==='approved'?'approved':status==='declined'?'declined':'pending';
+    return `<span class="badge ${cls}">${escapeHtml(status||'pending')}</span>`;
+  }
+
+  function resetForm(){
+    qs('#editTaskId').value='';
+    qs('#taskTitle').value='';
+    qs('#taskDescription').value='';
+    qs('#taskLink').value='';
+    qs('#taskReward').value=0;
+    qs('#taskActive').value='true';
+    qs('#saveTaskBtn').textContent='Save Task';
+  }
+
+  async function loadTasks(){
+    const data = await api('/api/admin/tasks');
+    const rows = data.tasks.map(t => `
+      <tr>
+        <td>${t.id}</td>
+        <td><strong>${escapeHtml(t.title)}</strong><br/><span class="muted">${escapeHtml(t.description)}</span>${t.task_link ? `<br/><a href="${escapeHtml(t.task_link)}" target="_blank" rel="noopener noreferrer">Open link</a>` : ''}</td>
+        <td>${t.reward}</td>
+        <td>${t.is_active ? 'Yes' : 'No'}</td>
+        <td>
+          <div class="actions">
+            <button class="secondary" onclick="editTask(${t.id})">Edit</button>
+            <button class="danger" onclick="deleteTask(${t.id})">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    qs('#tasksTableWrap').innerHTML = `
+      <table>
+        <thead><tr><th>ID</th><th>Task</th><th>Reward</th><th>Active</th><th>Actions</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="muted">No tasks yet.</td></tr>`}</tbody>
+      </table>
+    `;
+
+    window.__taskCache = new Map(data.tasks.map(t => [t.id, t]));
+  }
+
+  window.editTask = function(id){
+    const t = window.__taskCache?.get(id);
+    if(!t) return;
+    qs('#editTaskId').value = t.id;
+    qs('#taskTitle').value = t.title;
+    qs('#taskDescription').value = t.description;
+    qs('#taskLink').value = t.task_link || '';
+    qs('#taskReward').value = t.reward;
+    qs('#taskActive').value = String(!!t.is_active);
+    qs('#saveTaskBtn').textContent='Update Task';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  window.deleteTask = async function(id){
+    if(!confirm(`Delete task #${id}? This also deletes its submissions.`)) return;
+    await api(`/api/admin/tasks/${id}`, { method:'DELETE' });
+    await loadTasks();
+    await loadSubmissions();
+  }
+
+  async function saveTask(){
+    const id = qs('#editTaskId').value;
+    const payload = {
+      title: qs('#taskTitle').value.trim(),
+      description: qs('#taskDescription').value.trim(),
+      task_link: qs('#taskLink').value.trim(),
+      reward: Number(qs('#taskReward').value),
+      is_active: qs('#taskActive').value === 'true'
+    };
+
+    if(id){
+      await api(`/api/admin/tasks/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+    } else {
+      await api('/api/admin/tasks', { method:'POST', body: JSON.stringify(payload) });
+    }
+
+    resetForm();
+    await loadTasks();
+  }
+
+  async function loadSubmissions(){
+    const status = qs('#filterStatus').value;
+    const wallet = qs('#filterWallet').value.trim();
+    const taskId = qs('#filterTaskId').value.trim();
+
+    const params = new URLSearchParams();
+    if(status) params.set('status', status);
+    if(wallet) params.set('wallet', wallet);
+    if(taskId) params.set('task_id', taskId);
+
+    const data = await api(`/api/admin/submissions?${params.toString()}`);
+
+    const rows = data.submissions.map(s => {
+      const t = s.task || {};
+      return `
+        <tr>
+          <td>${s.id}</td>
+          <td><span class="muted">${escapeHtml(s.user_wallet)}</span></td>
+          <td>#${t.id || s.task_id} — <strong>${escapeHtml(t.title || '')}</strong><br/><span class="muted">Reward: ${t.reward ?? ''}</span></td>
+          <td>${badge(s.status)}</td>
+          <td><a href="${escapeHtml(s.proof_url)}" target="_blank">Open proof</a></td>
+          <td>
+            <div class="actions">
+              ${s.status === 'pending' ? `
+                <button onclick="approve(${s.id})">Approve</button>
+                <button class="secondary" onclick="decline(${s.id})">Decline</button>
+              ` : `<span class="muted">—</span>`}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    qs('#submissionsTableWrap').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Wallet</th><th>Task</th><th>Status</th><th>Proof</th><th>Review</th>
+          </tr>
+        </thead>
+        <tbody>${rows || `<tr><td colspan="6" class="muted">No submissions.</td></tr>`}</tbody>
+      </table>
+    `;
+  }
+
+  window.approve = async function(id){
+    await api(`/api/admin/submissions/${id}/approve`, { method:'POST' });
+    await loadSubmissions();
+  }
+
+  window.decline = async function(id){
+    const review_note = prompt('Decline reason (optional):', '');
+    await api(`/api/admin/submissions/${id}/decline`, { method:'POST', body: JSON.stringify({ review_note }) });
+    await loadSubmissions();
+  }
+
+  qs('#saveTaskBtn').addEventListener('click', (e) => { e.preventDefault(); saveTask().catch(err=>alert(err.message)); });
+  qs('#resetTaskBtn').addEventListener('click', (e) => { e.preventDefault(); resetForm(); });
+  qs('#applyFiltersBtn').addEventListener('click', (e) => { e.preventDefault(); loadSubmissions().catch(err=>alert(err.message)); });
+
+  // Boot
+  resetForm();
+  loadTasks().catch(err=>alert(err.message));
+  loadSubmissions().catch(err=>alert(err.message));
+</script>
+
+  {% include "partials/announcements_widget.html" %}
+{% include "partials/a2hs_widget.html" %}
+</body>
+</html>

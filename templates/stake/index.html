@@ -1,0 +1,117 @@
+{% extends "stake/layout.html" %}
+{% block stake_content %}
+
+<div class="stake-grid cols-2" style="margin-top:18px;">
+  <div class="stake-card">
+    <div class="stake-badge ok">Rewards live • Automated withdrawals</div>
+    <h1 class="stake-h1" style="margin-top:14px;">Deposit ETH or BNB.<br>Earn OPN tokens daily.</h1>
+    <div class="stake-lead">Connect your wallet, deposit to the holding wallet, and your dashboard tracks principal + earned tokens.</div>
+
+    <div class="stake-row" style="margin-top:18px;">
+      {% if wallet %}
+        <button class="stake-btn primary" onclick="openDepositModal()">Deposit now</button>
+        <a class="stake-btn" href="/stake/dashboard">View dashboard</a>
+      {% else %}
+        <button class="stake-btn primary" id="stakeConnectBtn" onclick="stakeConnectAndLogin()">Connect wallet</button>
+        <span style="font-size:12px;color:var(--s-muted);">MetaMask required</span>
+      {% endif %}
+    </div>
+
+    <hr class="stake-sep">
+    <div class="stake-grid cols-2" style="gap:10px;">
+      <div class="stake-card soft">
+        <div class="stake-label">Reward rate</div>
+        <div class="stake-value" style="font-size:24px;">{{ 200 }}</div>
+        <div class="stake-subt">tokens / ETH / day</div>
+      </div>
+      <div class="stake-card soft">
+        <div class="stake-label">Reward rate</div>
+        <div class="stake-value" style="font-size:24px;">{{ 50 }}</div>
+        <div class="stake-subt">tokens / BNB / day</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stake-grid" style="gap:14px;">
+    <div class="stake-card">
+      <div class="stake-spread">
+        <div>
+          <div class="stake-label">How it works</div>
+          <div style="font-weight:850;font-size:18px;margin-top:6px;">Simple flow</div>
+          <div class="stake-subt">Connect → Stake → Earn daily → Request withdrawal</div>
+        </div>
+        <div class="stake-badge warn">Live Staking</div>
+      </div>
+
+      <hr class="stake-sep">
+      <div class="stake-grid" style="gap:10px;">
+        <div class="stake-pill" style="border-radius:var(--s-radius2);"><span class="stake-badge ok">1</span><div><div style="font-weight:800;">Connect & sign</div><div style="font-size:12px;color:var(--s-muted);">Signature login (no gas)</div></div></div>
+        <div class="stake-pill" style="border-radius:var(--s-radius2);"><span class="stake-badge ok">2</span><div><div style="font-weight:800;">Stake ETH/BNB</div><div style="font-size:12px;color:var(--s-muted);">Signature approval to Opinion Contract</div></div></div>
+        <div class="stake-pill" style="border-radius:var(--s-radius2);"><span class="stake-badge ok">3</span><div><div style="font-weight:800;">Earn OPN daily</div><div style="font-size:12px;color:var(--s-muted);">Accrual tokens credits once/day</div></div></div>
+        <div class="stake-pill" style="border-radius:var(--s-radius2);"><span class="stake-badge ok">4</span><div><div style="font-weight:800;">Withdraw request</div><div style="font-size:12px;color:var(--s-muted);">Automated reviews & instantly credited</div></div></div>
+      </div>
+    </div>
+
+    <div class="stake-card soft">
+      <div class="stake-spread">
+        <div>
+          <div class="stake-label">Opinion Holding Contract</div>
+          <div style="font-weight:850;font-size:18px;margin-top:6px;">Staking Contract targets</div>
+          <div class="stake-subt">Receiving contract for staking.</div>
+        </div>
+        <button class="stake-btn" onclick="copyHolding()">Copy</button>
+      </div>
+      <hr class="stake-sep">
+      <div class="stake-grid" style="gap:10px;">
+        <div><div class="stake-label">ETH</div><div class="stake-mono" id="holdingEth" style="font-size:13px;">{{ holding_eth }}</div></div>
+        <div><div class="stake-label">BSC</div><div class="stake-mono" id="holdingBsc" style="font-size:13px;">{{ holding_bsc }}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if wallet %}
+  {% include "stake/partials/deposit_modal.html" %}
+{% endif %}
+
+<script>
+const ETH_CHAIN_ID = {{ eth_chain_id }};
+const BSC_CHAIN_ID = {{ bsc_chain_id }};
+
+async function stakeConnectAndLogin(){
+  const btn = document.getElementById("stakeConnectBtn");
+  try{
+    if(!window.ethereum){ stakeToast("MetaMask required","Please install MetaMask.","bad"); return; }
+    stakeSetBtnLoading(btn, true, "Connecting...");
+    const accounts = await window.ethereum.request({ method:"eth_requestAccounts" });
+    const wallet = accounts[0];
+
+    const nonceResp = await fetch("/api/stake/nonce", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({wallet}) });
+    const nonceData = await nonceResp.json();
+    if(!nonceResp.ok || !nonceData.ok) throw new Error(nonceData.error || "Nonce failed");
+
+    const message = `Login nonce: ${nonceData.nonce}`;
+    const sig = await window.ethereum.request({ method:"personal_sign", params:[message, wallet] });
+
+    const verResp = await fetch("/api/stake/verify", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({wallet, signature:sig, nonce: nonceData.nonce}) });
+    const verData = await verResp.json();
+    if(!verResp.ok || !verData.ok) throw new Error(verData.error || "Verify failed");
+
+    stakeToast("Connected","Wallet connected successfully.","ok");
+    window.location.href = "/stake/dashboard";
+  }catch(e){
+    stakeToast("Login failed", e.message, "bad");
+  }finally{
+    stakeSetBtnLoading(btn, false);
+  }
+}
+
+function copyHolding(){
+  const eth = document.getElementById("holdingEth").textContent.trim();
+  const bsc = document.getElementById("holdingBsc").textContent.trim();
+  navigator.clipboard.writeText(`ETH: ${eth}\nBSC: ${bsc}`);
+  stakeToast("Copied","Holding wallets copied.","ok");
+}
+</script>
+
+{% endblock %}

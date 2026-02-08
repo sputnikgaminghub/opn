@@ -1,0 +1,30 @@
+<!-- Announcements widget (floating bottom-left bell + left drawer + optional critical banner) -->
+<link rel="stylesheet" href="/static/announcements_widget.css?v={{ static_ver }}">
+
+<div id="apro-announce-bell" aria-label="Announcements" role="button" tabindex="0" title="Announcements">
+  <span class="apro-announce-ico">🔔</span>
+  <span id="apro-announce-badge" class="apro-announce-badge" aria-label="Unread announcements"></span>
+</div>
+
+<div id="apro-announce-overlay" class="apro-announce-overlay apro-hidden" aria-hidden="true">
+  <div id="apro-announce-drawer" class="apro-announce-drawer" role="dialog" aria-modal="true" aria-label="Announcements">
+    <div class="apro-announce-header">
+      <div>
+        <div class="apro-announce-title">Announcements</div>
+        <div class="apro-announce-subtitle" id="apro-announce-subtitle">Latest updates</div>
+      </div>
+      <button id="apro-announce-close" class="apro-announce-close" type="button" aria-label="Close">✕</button>
+    </div>
+
+    <div id="apro-announce-list" class="apro-announce-list"></div>
+
+    <div id="apro-announce-detail" class="apro-announce-detail apro-hidden">
+      <button id="apro-announce-back" class="apro-announce-back" type="button">← Back</button>
+      <div id="apro-announce-detail-inner"></div>
+    </div>
+  </div>
+</div>
+
+<div id="apro-critical-banner" class="apro-critical-banner apro-hidden" role="region" aria-label="Critical announcement"></div>
+
+<script src="/static/announcements_widget.js?v={{ static_ver }}"></script>

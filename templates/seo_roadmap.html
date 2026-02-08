@@ -1,0 +1,21 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/roadmap" data-cta="cta_view_roadmap_app" data-cta-position="hero">View roadmap in the app</a>
+    <a class="btn ghost" href="/learn/tokenomics" data-cta="cta_view_tokenomics" data-cta-position="hero_secondary">Tokenomics</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Milestones</h2>
+  <ul class="bullets">
+    <li><strong>Q3 2025 (completed):</strong> platform development & smart contract audit; community launch; whitepaper & token design; partnerships.</li>
+    <li><strong>Q4 2025 (current):</strong> presale launch & distribution; DEX listings (Uniswap, PancakeSwap); marketing expansion; community airdrop distribution.</li>
+    <li><strong>Q1 2026 (upcoming):</strong> CEX listings (Gate.io, KuCoin); staking platform; mobile app; partnership expansion.</li>
+    <li><strong>Q2 2026 (future):</strong> cross-chain integration; NFT marketplace; DAO governance; ecosystem expansion.</li>
+  </ul>
+</section>
+{% endblock %}

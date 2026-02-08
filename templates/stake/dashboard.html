@@ -1,0 +1,173 @@
+{% extends "stake/layout.html" %}
+{% block stake_content %}
+
+<div class="stake-card" style="margin-top:18px;">
+  <div class="stake-spread">
+    <div>
+      <div class="stake-label">Dashboard</div>
+      <div style="font-weight:850;font-size:20px;margin-top:6px;">Overview</div>
+      <div class="stake-subt">Wallet: <span class="stake-mono">{{ wallet[:6] }}…{{ wallet[-4:] }}</span></div>
+    </div>
+    <button class="stake-btn primary" onclick="openDepositModal()">Deposit/Stake</button>
+  </div>
+</div>
+
+<div class="stake-grid cols-3" style="margin-top:14px;">
+  <div class="stake-card">
+    <div class="stake-label">Principal</div>
+    <div class="stake-value">{{ (balance.principal_eth or 0) + (balance.principal_bnb or 0) }}</div>
+    <div class="stake-subt">Total (ETH + BNB)</div>
+    <hr class="stake-sep">
+    <div class="stake-row" style="justify-content:space-between;"><span class="stake-subt">ETH</span><span class="stake-mono">{{ balance.principal_eth }}</span></div>
+    <div class="stake-row" style="justify-content:space-between;"><span class="stake-subt">BNB</span><span class="stake-mono">{{ balance.principal_bnb }}</span></div>
+  </div>
+
+  <div class="stake-card">
+    <div class="stake-label">Earned OPN tokens</div>
+    <div class="stake-value" style="display:flex;align-items:center;gap:10px;">
+      <img src="/static/stake/token.png" alt="Token" style="width:26px;height:26px;border-radius:999px;">
+      <span>{{ balance.earned_tokens }}</span>
+    </div>
+    <div class="stake-subt">Accrued daily</div>
+    <hr class="stake-sep">
+    <div class="stake-subt">Rates: <span class="stake-mono">{{ reward_per_eth }}</span>/ETH/day + <span class="stake-mono">{{ reward_per_bnb }}</span>/BNB/day</div>
+  </div>
+
+  <div class="stake-card">
+    <div class="stake-label">Estimated OPN tokens / day</div>
+    <div class="stake-value">{{ tokens_per_day }}</div>
+    <div class="stake-subt">Based on confirmed principal</div>
+    <hr class="stake-sep">
+    <div class="stake-badge ok">Accrual once/day</div>
+  </div>
+</div>
+
+{% include "stake/partials/deposit_modal.html" %}
+
+<div class="stake-grid cols-2" style="margin-top:14px;">
+  <div class="stake-card">
+    <div class="stake-spread">
+      <div>
+        <div class="stake-label">Withdrawals</div>
+        <div style="font-weight:850;font-size:18px;margin-top:6px;">Instant processing</div>
+        <div class="stake-subt">One request at a time</div>
+      </div>
+      {% if pending_withdrawal %}
+        <span class="stake-badge warn">Pending</span>
+      {% else %}
+        <span class="stake-badge ok">Ready</span>
+      {% endif %}
+    </div>
+
+    <hr class="stake-sep">
+
+    {% if pending_withdrawal %}
+      <div class="stake-grid" style="gap:10px;">
+        <div class="stake-row" style="justify-content:space-between;"><span class="stake-subt">Type</span><span class="stake-mono">{{ pending_withdrawal.type }}</span></div>
+        <div class="stake-row" style="justify-content:space-between;"><span class="stake-subt">Amount</span><span class="stake-mono">{{ pending_withdrawal.amount }}</span></div>
+        <div class="stake-row" style="justify-content:space-between;"><span class="stake-subt">Status</span><span class="stake-badge warn">{{ pending_withdrawal.status }}</span></div>
+        {% if pending_withdrawal.admin_note %}<div style="font-size:12px;color:var(--s-muted);">Admin note: {{ pending_withdrawal.admin_note }}</div>{% endif %}
+      </div>
+    {% else %}
+      <div class="stake-grid" style="gap:12px;">
+        <div>
+          <div class="stake-label" style="margin-bottom:8px;">Type</div>
+          <select class="stake-select" id="wtype">
+            <option value="EARNED_TOKENS">Earned Tokens</option>
+            <option value="PRINCIPAL_ETH">Principal (ETH)</option>
+            <option value="PRINCIPAL_BNB">Principal (BNB)</option>
+          </select>
+        </div>
+        <div><div class="stake-label" style="margin-bottom:8px;">Amount</div><input class="stake-input" id="wamount" placeholder="e.g. 0.1"></div>
+        <div><div class="stake-label" style="margin-bottom:8px;">Destination address</div><input class="stake-input" id="wdest" placeholder="0x..."></div>
+        <button class="stake-btn primary" id="wbtn" onclick="submitWithdrawal()">Submit request</button>
+        <div style="font-size:12px;color:var(--s-muted);">Requests are reviewed and processed automatically.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="stake-card soft">
+    <div class="stake-label">Staking wallets</div>
+    <div style="font-weight:850;font-size:18px;margin-top:6px;">Deposit addresses</div>
+    <div class="stake-subt">Deposit is detected from your wallet → staking wallet.</div>
+    <hr class="stake-sep">
+    <div class="stake-grid" style="gap:10px;">
+      <div><div class="stake-label">ETH</div><div class="stake-mono" id="holdingEth">{{ holding_eth }}</div></div>
+      <div><div class="stake-label">BSC</div><div class="stake-mono" id="holdingBsc">{{ holding_bsc }}</div></div>
+      <button class="stake-btn" onclick="copyHolding()">Copy addresses</button>
+    </div>
+  </div>
+</div>
+
+<div class="stake-card" style="margin-top:14px;">
+  <div class="stake-spread">
+    <div>
+      <div class="stake-label">Deposits</div>
+      <div style="font-weight:850;font-size:18px;margin-top:6px;">Recent activity</div>
+      <div class="stake-subt">Announced deposits show “—” amount until scanner finds the tx.</div>
+    </div>
+    <span class="stake-badge">Auto scanner</span>
+  </div>
+
+  <hr class="stake-sep">
+
+  <div class="stake-table-wrap">
+    <table class="stake-table">
+      <thead>
+        <tr><th>Time</th><th>Chain</th><th>Amount</th><th>Status</th><th>Tx</th></tr>
+      </thead>
+      <tbody>
+        {% for d in deposits %}
+        <tr>
+          <td class="stake-mono">{{ d.created_at }}</td>
+          <td><span class="stake-badge">{{ d.chain }}</span></td>
+          <td class="stake-mono">{% if d.block_number == 0 %}—{% else %}{{ d.amount }} {{ d.asset }}{% endif %}</td>
+          <td>
+            {% if d.status == "confirmed" %}
+              <span class="stake-badge ok">confirmed</span>
+            {% else %}
+              <span class="stake-badge warn">pending • {{ d.confirmations }}</span>
+            {% endif %}
+          </td>
+          <td><span class="stake-mono">{{ d.tx_hash[:10] }}…</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const ETH_CHAIN_ID = {{ eth_chain_id }};
+const BSC_CHAIN_ID = {{ bsc_chain_id }};
+
+function copyHolding(){
+  const eth = document.getElementById("holdingEth").textContent.trim();
+  const bsc = document.getElementById("holdingBsc").textContent.trim();
+  navigator.clipboard.writeText(`ETH: ${eth}\nBSC: ${bsc}`);
+  stakeToast("Copied","Holding wallets copied.","ok");
+}
+
+async function submitWithdrawal(){
+  const btn = document.getElementById("wbtn");
+  try{
+    stakeSetBtnLoading(btn, true, "Submitting...");
+    const payload = {
+      type: document.getElementById("wtype").value,
+      amount: document.getElementById("wamount").value,
+      destination_address: document.getElementById("wdest").value
+    };
+    const resp = await fetch("/api/stake/withdrawals/submit", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const data = await resp.json();
+    if(!resp.ok || !data.ok) throw new Error(data.error || "Request failed");
+    stakeToast("Submitted","Withdrawal request submitted.","ok");
+    setTimeout(()=>window.location.reload(), 700);
+  }catch(e){
+    stakeToast("Withdrawal failed", e.message, "bad");
+  }finally{
+    stakeSetBtnLoading(btn, false);
+  }
+}
+</script>
+
+{% endblock %}

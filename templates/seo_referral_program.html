@@ -1,0 +1,56 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ h1 }}</h1>
+  <p class="lead">{{ lead }}</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/airdrop" data-cta="cta_view_referral_potential" data-cta-position="hero">Open referral dashboard</a>
+    <a class="btn ghost" href="/learn/withdrawals" data-cta="cta_view_withdrawals" data-cta-position="hero_secondary">How withdrawals unlock</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>How referrals are counted</h2>
+  <ul class="bullets">
+    <li>You receive <strong>+121 OPN</strong> for each successful referral.</li>
+    <li>A referral is “successful” only when the referred user <strong>claims</strong> using your referral code.</li>
+    <li><strong>Link clicks don’t count</strong> by themselves — claims do.</li>
+  </ul>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>Your referral code</h2>
+    <p>When you enter your wallet in the airdrop section, the system generates (or retrieves) a unique referral code for your wallet.</p>
+    <p class="muted">Share the code or your referral link from the dashboard.</p>
+  </div>
+
+  <div class="card">
+    <h2>Active referrals</h2>
+    <p>The app marks a referrer as “active” once they reach <strong>2+ referrals</strong>. This is used for network stats and ranking views.</p>
+  </div>
+
+  <div class="card">
+    <h2>Withdrawals requirement</h2>
+    <p>Withdrawals are locked until you reach <strong>7 referrals</strong>. You can track your progress in the Withdrawals tab inside the airdrop dashboard.</p>
+    <a class="text-link" href="/learn/withdrawals" data-cta="cta_view_withdrawals" data-cta-position="mid_card">See the withdrawals rules →</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Milestones & achievement bonuses</h2>
+  <p>Referral milestones can unlock extra rewards automatically:</p>
+  <ul class="bullets">
+    <li>1 referral: <strong>First Referral</strong> — 11 OPN</li>
+    <li>3 referrals: <strong>Network Builder</strong> — 111 OPN</li>
+    <li>5 referrals: <strong>Referral Master</strong> — 500 OPN</li>
+    <li>6 referrals: <strong>Ready to Cash Out</strong> — 1500 OPN</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>Next step</h2>
+  <p>To see your referral code, stats, and leaderboard ranking, open the airdrop dashboard and enter your wallet address.</p>
+  <a class="btn primary" href="/airdrop" data-cta="cta_view_referral_potential" data-cta-position="footer">Go to the airdrop dashboard</a>
+</section>
+{% endblock %}

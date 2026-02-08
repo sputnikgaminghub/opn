@@ -1,0 +1,61 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<div id="stakeShell" class="stake-shell" data-stake-theme="dark">
+  <div class="stake-nav">
+    <div class="stake-wrap">
+      <div class="stake-nav-inner">
+        <div class="stake-brand">
+          <img src="/static/stake/token.png" alt="Token">
+          <div>
+            <div class="stake-title">Staking</div>
+            <div class="stake-sub">Stake ETH/BNB • Earn OPN daily • Automated withdrawals</div>
+          </div>
+        </div>
+        <div class="stake-actions">
+          <button class="stake-btn stake-icon-btn" onclick="toggleStakeTheme()" title="Toggle theme">☾</button>
+          {% if wallet %}
+            <div class="stake-pill">
+              <span class="stake-dot ok"></span>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-weight:750;font-size:13px;">Connected</div>
+                <div class="stake-mono" style="font-size:12px;color:var(--s-muted);">{{ wallet[:6] }}…{{ wallet[-4:] }}</div>
+              </div>
+            </div>
+            <a class="stake-btn" href="/stake/dashboard">Dashboard</a>
+            <button class="stake-btn ghost" onclick="stakeLogout()">Logout</button>
+          {% else %}
+            <div class="stake-pill">
+              <span class="stake-dot"></span>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="font-weight:750;font-size:13px;">Not connected</div>
+                <div style="font-size:12px;color:var(--s-muted);">Connect wallet to continue</div>
+              </div>
+            </div>
+            <a class="stake-btn" href="/stake">Home</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stake-wrap">
+    {% block stake_content %}{% endblock %}
+    <div style="color:var(--s-muted);font-size:12px;padding:24px 0 40px;text-align:center;">© OPN Staking module • Live Now</div>
+  </div>
+
+  <div id="stakeToastWrap" class="stake-toast-wrap"></div>
+</div>
+
+<link rel="stylesheet" href="/static/stake/stake.css?v={{ static_ver }}">
+<script defer src="/static/stake/stake.js?v={{ static_ver }}"></script>
+
+<script>
+async function stakeLogout(){
+  await fetch("/api/stake/logout", {method:"POST"});
+  window.location.href = "/stake";
+}
+</script>
+
+{% include "partials/announcements_widget.html" %}
+{% include "partials/a2hs_widget.html" %}
+{% endblock %}

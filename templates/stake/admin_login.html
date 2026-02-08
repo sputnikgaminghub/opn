@@ -1,0 +1,21 @@
+{% extends "stake/layout.html" %}
+{% block stake_content %}
+<div class="stake-grid" style="place-items:center;margin-top:26px;">
+  <div class="stake-card" style="width:min(520px,100%);">
+    <div class="stake-label">Admin</div>
+    <div style="font-weight:850;font-size:22px;margin-top:6px;">Staking login</div>
+    <div class="stake-subt">Access is gated via /admin/stake?key=...</div>
+    {% if request.args.get("err") %}
+      <div class="stake-badge bad" style="margin-top:12px;">Wrong password</div>
+    {% endif %}
+    <hr class="stake-sep">
+    <form method="post" action="/admin/staking/login" class="stake-grid" style="gap:12px;">
+      <div>
+        <div class="stake-label" style="margin-bottom:8px;">Password</div>
+        <input class="stake-input" name="password" type="password" placeholder="Admin password">
+      </div>
+      <button class="stake-btn primary" type="submit">Login</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
