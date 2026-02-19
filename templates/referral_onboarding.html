@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Opinion (OPN) · Referral Onboarding</title>
     
-    <!-- Favicon & Preconnects -->
+    <!-- Favicon & Preconnects (keep existing) -->
     <link rel="icon" type="image/png" href="/static/img/favicon-32.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Open Graph & Meta (keep original) -->
+    <!-- Open Graph & Meta (keep existing) -->
     <meta property="og:title" content="Opinion (OPN) | Presale & Airdrop Platform">
     <meta property="og:description" content="Join the Opinion (OPN) presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
     <meta property="og:image" content="https://i.postimg.cc/mZzVqpRt/PRESALE-IS-LIVE.png">
@@ -62,14 +62,17 @@
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
             padding: 12px;
-            background-size: 200% 200%;
-            animation: bgShift 20s ease infinite;
         }
 
+        /* animated background shift (optional) */
         @keyframes bgShift {
             0% { background-position: 0% 0%; }
             50% { background-position: 100% 100%; }
             100% { background-position: 0% 0%; }
+        }
+        body {
+            background-size: 200% 200%;
+            animation: bgShift 20s ease infinite;
         }
 
         .wrap {
@@ -192,7 +195,7 @@
             max-width: 85%;
         }
 
-        /* ---------- FEATURE GRID (mobile stacks, desktop 3 columns) ---------- */
+        /* ---------- FEATURE GRID (compact) ---------- */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -257,32 +260,13 @@
         }
 
         .feature-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-top: 8px;
-        }
-        .stat-item {
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.02);
             padding: 4px 8px;
             border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            width: fit-content;
-        }
-        .stat-item i {
-            font-size: 0.7rem;
-            color: var(--accent);
-        }
-        .feature-note {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 6px;
-            padding-left: 4px;
+            display: inline-block;
         }
 
         .warning-note {
@@ -295,7 +279,10 @@
             border: 1px solid rgba(255, 107, 129, 0.15);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+        }
+        .warning-note i {
+            font-size: 0.7rem;
         }
 
         /* ---------- ACTION BUTTONS (always 2 columns) ---------- */
@@ -387,7 +374,7 @@
             border-bottom-color: var(--accent);
         }
 
-        /* ---------- LOCK MESSAGE ---------- */
+        /* ---------- LOCK MESSAGE (hidden by default) ---------- */
         .lock-msg {
             background: rgba(255, 107, 129, 0.1);
             border: 1px solid rgba(255, 107, 129, 0.2);
@@ -414,11 +401,17 @@
         /* ---------- MOBILE OPTIMIZATIONS ---------- */
         @media (max-width: 600px) {
             .feature-grid {
-                grid-template-columns: 1fr; /* stack on mobile */
+                grid-template-columns: 1fr; /* stack on very small, but we keep compact */
                 gap: 8px;
+            }
+            .feature {
+                padding: 10px;
             }
             .lead {
                 max-width: 100%;
+            }
+            .actions {
+                grid-template-columns: 1fr 1fr; /* keep two columns even on small */
             }
         }
 
@@ -476,19 +469,16 @@
                 <i class="fas fa-lock"></i> <span></span>
             </div>
 
-            <!-- Feature grid with full details -->
+            <!-- Compact feature grid with icons -->
             <div class="feature-grid">
                 <!-- Presale -->
                 <div class="feature">
                     <div class="feature-header">
                         <i class="fas fa-rocket"></i>
-                        <span class="feature-title">Presale <span class="rec-tag">RECOMMENDED</span></span>
+                        <span class="feature-title">Presale <span class="rec-tag">REC</span></span>
                     </div>
-                    <div class="feature-desc">Early‑bird bonus tiers + discount price</div>
-                    <div class="feature-stats">
-                        <span class="stat-item"><i class="fas fa-percent"></i> +20% / +25% / +30%</span>
-                    </div>
-                    <div class="feature-note">Presale pricing shown on dashboard</div>
+                    <div class="feature-desc">Early‑bird tiers + discount</div>
+                    <div class="feature-stats">+20% / +25% / +30%</div>
                 </div>
                 <!-- Airdrop -->
                 <div class="feature">
@@ -496,13 +486,10 @@
                         <i class="fas fa-gift"></i>
                         <span class="feature-title">Airdrop</span>
                     </div>
-                    <div class="feature-desc">Eligibility + referral rewards</div>
-                    <div class="feature-stats">
-                        <span class="stat-item"><i class="fas fa-coins"></i> 121 OPN per referral</span>
-                        <span class="stat-item"><i class="fas fa-lock-open"></i> Withdraw unlock: 7+ referrals</span>
-                    </div>
+                    <div class="feature-desc">121 OPN per referral</div>
+                    <div class="feature-stats">Unlock ≥7 referrals</div>
                     <div class="warning-note">
-                        <i class="fas fa-exclamation-triangle"></i> One account per device. Only completed claims count.
+                        <i class="fas fa-exclamation-triangle"></i> 1 account/device · only completed claims
                     </div>
                 </div>
                 <!-- Staking -->
@@ -511,11 +498,8 @@
                         <i class="fas fa-piggy-bank"></i>
                         <span class="feature-title">Staking</span>
                     </div>
-                    <div class="feature-desc">Earn OPN daily by staking</div>
-                    <div class="feature-stats">
-                        <span class="stat-item"><i class="fab fa-ethereum"></i> 200 OPN / ETH / day</span>
-                        <span class="stat-item"><i class="fas fa-coins"></i> 50 OPN / BNB / day</span>
-                    </div>
+                    <div class="feature-desc">Daily OPN earnings</div>
+                    <div class="feature-stats">200 ETH / 50 BNB</div>
                 </div>
             </div>
 
@@ -569,7 +553,7 @@
                 }
             }
 
-            // Track events
+            // Track events (simplified with fetch)
             async function track(eventName) {
                 if (!valid) return;
                 try {
@@ -593,7 +577,7 @@
             // Track page view
             track("landing_view");
 
-            // Attach click tracking
+            // Attach click tracking via data attributes (cleaner)
             const trackMap = {
                 "btnPresale": "click_presale",
                 "btnAirdrop": "click_airdrop",
