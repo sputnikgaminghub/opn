@@ -415,15 +415,32 @@
             }
         }
 
-        @media (max-width: 380px) {
-            .btn {
-                padding: 10px 4px;
-                font-size: 0.75rem;
-                white-space: normal;
-            }
+        /* 
+          ========== PATCH: Force referral pill to top-right ==========
+          Removed the old @media (max-width:380px) that set column wrap.
+          Added new rules to keep row nowrap and truncate long codes.
+        */
+        @media (max-width: 500px) {
             .brand-row {
-                flex-direction: column;
-                align-items: flex-start;
+                flex-wrap: nowrap;          /* prevent wrapping */
+                gap: 6px;                    /* reduce gap */
+            }
+
+            .ref-pill {
+                font-size: 0.7rem;           /* smaller text */
+                padding: 2px 6px 2px 10px;   /* compact padding */
+                max-width: 65%;              /* allow pill to take up to 65% of row */
+            }
+
+            .ref-pill .mono {
+                max-width: 100px;             /* limit code width */
+                overflow: hidden;
+                text-overflow: ellipsis;      /* add … if too long */
+                white-space: nowrap;
+            }
+
+            .copy-btn {
+                padding: 4px;                 /* slightly smaller tap area */
             }
         }
 
