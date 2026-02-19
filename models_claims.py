@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, Index, Integer, String
+from sqlalchemy import Column, DateTime, Index, Integer, String
 
 from extensions import db
 
@@ -28,7 +28,9 @@ class ClaimWindowClaim(db.Model):
 
     id = Column(Integer, primary_key=True)
     wallet = Column(String(42), nullable=False, index=True)
-    amount = Column(Float, nullable=False, default=0.0)
+    # Whole-number token accounting (avoid Float rounding drift).
+    # NOTE: If you already have a DB with Float columns, you must migrate this column.
+    amount = Column(Integer, nullable=False, default=0)
     points = Column(Integer, nullable=False, default=0)
     claimed_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 

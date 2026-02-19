@@ -12,3 +12,4 @@ pywebpush==1.14.0
 eth-account==0.13.4
 Markdown==3.6
 bleach==6.1.0
+Flask-Session==0.6.0

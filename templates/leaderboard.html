@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard • OPN</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.65);
+      --primary: #00ff88;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(0,255,136,0.18), transparent 45%),
+                  radial-gradient(1000px 700px at 80% 0%, rgba(0,160,255,0.15), transparent 45%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 28px 16px 64px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.2px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: rgba(255,255,255,0.22); }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0 14px;
+    }
+    .tab {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tab.active {
+      color: var(--text);
+      border-color: rgba(0,255,136,0.35);
+      background: rgba(0,255,136,0.08);
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+    }
+    tr:last-child td { border-bottom: none; }
+    .rank {
+      width: 64px;
+      color: var(--muted);
+    }
+    .wallet {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .points {
+      text-align: right;
+      font-weight: 700;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pill b { color: var(--text); }
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 10px 0 0;
+    }
+    .empty {
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Leaderboard</h1>
+        <div class="subtitle">Engagement points (streaks, tasks, staking) • Not token rewards</div>
+      </div>
+      <a class="btn" href="/">← Back to Dashboard</a>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tabWeekly">This Week</div>
+      <div class="tab" id="tabAll">All-time</div>
+    </div>
+
+    <div class="card">
+      <div class="meta" id="metaRow"></div>
+      <div id="tableWrap"></div>
+    </div>
+  </div>
+
+  <script>
+    const metaRow = document.getElementById('metaRow');
+    const tableWrap = document.getElementById('tableWrap');
+    const tabWeekly = document.getElementById('tabWeekly');
+    const tabAll = document.getElementById('tabAll');
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<"'>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function render(leaders, extra = {}) {
+      if (!leaders || leaders.length === 0) {
+        tableWrap.innerHTML = '<div class="empty">No data yet.</div>';
+        return;
+      }
+
+      const rows = leaders.map((r, i) => {
+        const wallet = escapeHtml(r.wallet);
+        const pts = Number(r.points || 0);
+        const rankLabel = r.rank ? `<span class="pill"><b>${escapeHtml(r.rank)}</b></span>` : '';
+        const streakLabel = (typeof r.streak === 'number') ? `<span class="pill">Streak <b>${r.streak}d</b></span>` : '';
+
+        return `
+          <tr>
+            <td class="rank">#${i + 1}</td>
+            <td>
+              <div class="wallet">${wallet}</div>
+              <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">${rankLabel}${streakLabel}</div>
+            </td>
+            <td class="points">${pts.toLocaleString()}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tableWrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th class="rank">Rank</th>
+              <th>Wallet</th>
+              <th class="points">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+
+      metaRow.innerHTML = '';
+      if (extra.week_start) {
+        metaRow.innerHTML += `<span class="pill">Week start <b>${escapeHtml(extra.week_start)}</b></span>`;
+      }
+      metaRow.innerHTML += `<span class="pill">Showing <b>${leaders.length}</b></span>`;
+    }
+
+    async function loadWeekly() {
+      tabWeekly.classList.add('active');
+      tabAll.classList.remove('active');
+      tableWrap.innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        const res = await fetch('/api/leaderboard/weekly');
+        const data = await res.json();
+        if (data && data.success) {
+          render(data.leaders || [], { week_start: data.week_start });
+        } else {
+          tableWrap.innerHTML = `<div class="empty">${escapeHtml(data?.error || 'Failed to load')}</div>`;
+        }
+      } catch (e) {
+        tableWrap.innerHTML = '<div class="empty">Failed to load.</div>';
+      }
+    }
+
+    async function loadAll() {
+      tabAll.classList.add('active');
+      tabWeekly.classList.remove('active');
+      tableWrap.innerHTML = '<div class="empty">Loading...</div>';
+      try {
+        const res = await fetch('/api/leaderboard/alltime');
+        const data = await res.json();
+        if (data && data.success) {
+          render(data.leaders || []);
+        } else {
+          tableWrap.innerHTML = `<div class="empty">${escapeHtml(data?.error || 'Failed to load')}</div>`;
+        }
+      } catch (e) {
+        tableWrap.innerHTML = '<div class="empty">Failed to load.</div>';
+      }
+    }
+
+    tabWeekly.addEventListener('click', loadWeekly);
+    tabAll.addEventListener('click', loadAll);
+
+    // init
+    loadWeekly();
+  </script>
+</body>
+</html>

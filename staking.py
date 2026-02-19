@@ -28,8 +28,9 @@ HOLDING_WALLET_BSC = os.getenv("STAKE_HOLDING_WALLET_BSC", "0xa84e6D0Fa3B35b18FF
 ETH_CHAIN_ID = int(os.getenv("STAKE_ETH_CHAIN_ID", os.getenv("ETH_CHAIN_ID", "1")))
 BSC_CHAIN_ID = int(os.getenv("STAKE_BSC_CHAIN_ID", os.getenv("BSC_CHAIN_ID", "56")))
 
-ADMIN_GATE_KEY = os.getenv("STAKE_ADMIN_GATE_KEY", "admin123")
-ADMIN_PASSWORD = os.getenv("STAKE_ADMIN_PASSWORD", os.getenv("ADMIN_PASSWORD", os.getenv("ADMIN_API_KEY", "CHANGE_ME")))
+# Standardized staking admin key (matches other admin sections)
+# NOTE: STAKE_ADMIN_GATE_KEY is kept as a backwards-compatible fallback env var name.
+ADMIN_STAKING_KEY = os.getenv("ADMIN_STAKING_KEY", os.getenv("STAKE_ADMIN_GATE_KEY", "CHANGE_ME"))
 
 CONFIRMATIONS_ETH = int(os.getenv("STAKE_ETH_CONFIRMATIONS", "12"))
 CONFIRMATIONS_BSC = int(os.getenv("STAKE_BSC_CONFIRMATIONS", "15"))
@@ -328,38 +329,39 @@ def stake_submit_withdrawal():
             pass
         return jsonify({'ok': False, 'error': 'Internal server error'}), 500
 
-@staking_bp.get("/admin/stake")
-def stake_admin_gate():
-    key = request.args.get("key","")
-    if key != ADMIN_GATE_KEY:
-        abort(404)
-    session["stake_admin_gate"] = True
-    return redirect(url_for("staking.stake_admin_login"))
-
 @staking_bp.get("/admin/staking/login")
-def stake_admin_login():
-    if not session.get("stake_admin_gate"):
-        abort(404)
-    return render_template("stake/admin_login.html", title="Staking Admin Login")
+def admin_staking_login_page():
+    if session.get("admin_staking"):
+        return redirect(url_for("staking.stake_admin_withdrawals"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Staking",
+        post_url=url_for("staking.admin_staking_login"),
+    )
+
 
 @staking_bp.post("/admin/staking/login")
-def stake_admin_login_post():
-    if not session.get("stake_admin_gate"):
-        abort(404)
-    pw = request.form.get("password","")
-    if pw != ADMIN_PASSWORD:
-        return redirect(url_for("staking.stake_admin_login", err=1))
-    session["stake_is_admin"] = True
-    return redirect(url_for("staking.stake_admin_withdrawals"))
+def admin_staking_login():
+    key = (request.form.get("key") or "").strip()
+    if key and str(key) == str(ADMIN_STAKING_KEY):
+        session["admin_staking"] = True
+        return redirect(url_for("staking.stake_admin_withdrawals"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Staking",
+        post_url=url_for("staking.admin_staking_login"),
+        error="Invalid key",
+    ), 403
+
 
 @staking_bp.post("/admin/staking/logout")
-def stake_admin_logout():
-    session.pop("stake_is_admin", None)
-    session.pop("stake_admin_gate", None)
-    return redirect(url_for("staking.stake_home"))
+def admin_staking_logout():
+    session.pop("admin_staking", None)
+    return redirect(url_for("staking.admin_staking_login_page"))
+
 
 def _require_admin():
-    if not session.get("stake_is_admin"):
+    if not session.get("admin_staking"):
         abort(404)
 
 @staking_bp.get("/admin/staking/withdrawals")

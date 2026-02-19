@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opinion (OPN) | Presale & Airdrop Platform</title>
+    
+    <!-- ========== FAVICON ========== -->
+    <link rel="icon" type="image/png" href="/static/img/favicon-32.png">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://translate.google.com" crossorigin>
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+    
+    <!-- ========== OPEN GRAPH & SOCIAL META TAGS ========== -->
+    <meta property="og:title" content="Opinion (OPN) | Presale & Airdrop Platform">
+    <meta property="og:description" content="Join the Opinion (OPN) presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
+    <meta property="og:image" content="https://i.postimg.cc/mZzVqpRt/PRESALE-IS-LIVE.png">
+    <meta property="og:url" content="https://opiniondrop.onrender.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Opinion (OPN)">
+    
+    <!-- ========== TWITTER CARD ========== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Opinion (OPN) | Presale & Airdrop Platform">
+    <meta name="twitter:description" content="Join the Opinion (OPN) presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
+    <meta name="twitter:image" content="https://i.postimg.cc/mZzVqpRt/PRESALE-IS-LIVE.png">
+    <meta name="twitter:site" content="@opinionlabsxyz">
+    
+    <!-- ========== ADDITIONAL META TAGS ========== -->
+    <meta name="description" content="Join the Opinion (OPN) ICO, presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
+    <meta name="keywords" content="Opinion (OPN), Opinion (OPN) cryptocurrency, Opinion (OPN) presale, Opinion (OPN) airdrop, Ethereum, blockchain, Opinion (OPN) token, crypto, Opinion (OPN) ICO">
+    <meta name="author" content="Opinion (OPN)">
+    
+    <!-- ========== EXISTING STYLESHEETS & SCRIPTS ========== -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
+    
+    <!-- Web3 Support -->
+    <style>
+    :root{
+      --bg:#0b0f19;
+      --card:#121a2a;
+      --text:#e6edf7;
+      --muted:#a7b4c7;
+      --accent:#3b82f6;
+      --border:rgba(255,255,255,0.08);
+      --shadow:0 10px 30px rgba(0,0,0,0.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(59,130,246,0.25), transparent 60%), var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 44px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 10px 4px 18px;
+    }
+    .brand .logo{
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    .pill{
+      border:1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .card{
+      background: rgba(18,26,42,0.92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    h1{
+      font-size: 22px;
+      line-height: 1.2;
+      margin: 0 0 10px;
+    }
+    p{
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 14px 0 18px;
+    }
+    .step{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+      display:flex;
+      gap: 10px;
+    }
+    .num{
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.18);
+      display:grid;
+      place-items:center;
+      color: var(--text);
+      font-weight: 700;
+      flex: 0 0 28px;
+    }
+    .step b{color:var(--text)}
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top: 14px;
+    }
+    .btn{
+      appearance:none;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 700;
+      text-decoration:none;
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+      flex: 1 1 220px;
+      text-align:center;
+    }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(99,102,241,0.95));
+      border-color: rgba(59,130,246,0.4);
+    }
+    .btn:active{transform: translateY(1px)}
+    .fine{
+      font-size: 12px;
+      color: rgba(167,180,199,0.85);
+      margin-top: 12px;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    @media (min-width: 520px){
+      h1{font-size:26px}
+      .card{padding:22px}
+    }
+  
+
+    .lead{margin:0 0 14px;color:var(--muted);line-height:1.45}
+    .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+    .feature{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .feature-title{font-weight:850;font-size:14px;display:flex;align-items:center;gap:8px}
+    .feature-sub{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
+    .bullets{margin:12px 0 0 18px;padding:0;color:var(--text);font-size:13px;line-height:1.45}
+    .bullets li{margin:6px 0}
+    .tag{font-size:11px;border-radius:999px;padding:4px 8px;border:1px solid var(--border);color:var(--muted)}
+    .tag.rec{border-color:rgba(59,130,246,.55);color:#cfe1ff}
+    .warn{margin-top:10px;color:#ff465a;font-size:12px;line-height:1.35;font-weight:650}
+    .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+    .btn{display:flex;align-items:center;justify-content:center;text-decoration:none;padding:12px 14px;border-radius:14px;border:1px solid var(--border);color:var(--text);font-weight:800;background:rgba(255,255,255,0.02)}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:white}
+    .btn.ghost{background:transparent}
+    .fine{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+    .fine-link{color:#cfe1ff;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.25)}
+    .ok{color:#38FF7A;font-weight:850;margin-left:6px}
+    .bad{color:#ff465a;font-weight:850;margin-left:8px}
+    .lock-msg{margin:10px 0 0;background:rgba(255,70,90,0.08);border:1px solid rgba(255,70,90,0.35);padding:10px 12px;border-radius:14px;color:#ffd1d6;font-size:13px;line-height:1.35;text-align:center}
+    @media (max-width: 940px){
+      .feature-grid{grid-template-columns:1fr}
+      .actions{grid-template-columns:1fr}
+    }
+    </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">Opinion Labs</div>
+      <div class="pill">
+        Referral: <span class="mono">{{ referral_code }}</span>
+        {% if valid_referral %}
+          <span class="ok">✅</span>
+        {% else %}
+          <span class="bad">Invalid</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      {% if valid_referral %}
+        <h1 style="margin-bottom:6px;">You’re invited 🎉</h1>
+        <p class="lead">Pick where to start. Your referral will be saved and auto-applied across Presale, Airdrop and Staking.</p>
+      {% else %}
+        <h1 style="margin-bottom:6px;">Referral not found</h1>
+        <p class="lead">This referral code isn’t recognized. You can still continue to the site normally.</p>
+      {% endif %}
+
+      <div id="refLockMsg" class="lock-msg" style="display:none;"></div>
+
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-top">
+            <div class="feature-title">Presale <span class="tag rec">Recommended</span></div>
+            <div class="feature-sub">Early-bird bonus tiers + discount price</div>
+          </div>
+          <ul class="bullets">
+            <li>Tier bonuses: <b>+20%</b> / <b>+25%</b> / <b>+30%</b></li>
+            <li>Presale pricing shown on the dashboard</li>
+          </ul>
+        </div>
+
+        <div class="feature">
+          <div class="feature-top">
+            <div class="feature-title">Airdrop</div>
+            <div class="feature-sub">Eligibility + referral rewards</div>
+          </div>
+          <ul class="bullets">
+            <li>Earn <b>121 OPN</b> per referral (completed claims)</li>
+            <li>Withdraw unlock: <b>7+</b> referrals</li>
+          </ul>
+          <div class="warn">⚠️ One account per device. Link clicks don’t count — only completed claims.</div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-top">
+            <div class="feature-title">Staking</div>
+            <div class="feature-sub">Earn OPN daily by staking</div>
+          </div>
+          <ul class="bullets">
+            <li><b>200 OPN</b> / ETH / day</li>
+            <li><b>50 OPN</b> / BNB / day</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="btn primary" id="btnPresale" href="{{ presale_url }}">Go to Presale</a>
+        <a class="btn" id="btnAirdrop" href="{{ airdrop_url }}">Go to Airdrop</a>
+        <a class="btn" id="btnStaking" href="{{ staking_url }}">Go to Staking</a>
+        <a class="btn ghost" id="tgJoinBtn" href="{{ telegram_channel_url }}" target="_blank" rel="noopener">Join Telegram</a>
+      </div>
+
+      <div class="fine">
+        {% if valid_referral and referrer_wallet %}
+          Invited by: <span class="mono">{{ referrer_wallet[:6] }}…{{ referrer_wallet[-4:] }}</span>
+        {% endif %}
+        <span style="opacity:.65;">•</span>
+        <a href="/" class="fine-link">Continue without referral</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const REF_STORAGE_KEY = "apro_referral_code";
+  const referralCode = "{{ referral_code }}".trim().toUpperCase();
+  const valid = {{ "true" if valid_referral else "false" }};
+
+  function getStored(){
+    try { return (localStorage.getItem(REF_STORAGE_KEY) || "").trim().toUpperCase(); } catch(e) { return ""; }
+  }
+  function storeIfEmpty(code){
+    if(!code || !valid) return {stored:false, ignored:false};
+    try{
+      const existing = getStored();
+      if(!existing){
+        localStorage.setItem(REF_STORAGE_KEY, code);
+        return {stored:true, ignored:false};
+      }
+      if(existing !== code){
+        return {stored:false, ignored:true, existing, incoming:code};
+      }
+      return {stored:false, ignored:false};
+    }catch(e){
+      return {stored:false, ignored:false};
+    }
+  }
+
+  async function track(eventName){
+    if(!valid) return;
+    console.log("[ref-analytics]", eventName, referralCode);
+    try{
+      await fetch("/api/track/referral", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({referral_code: referralCode, event: eventName})
+      });
+    }catch(e){}
+  }
+
+  // Persist (overwrite only if empty)
+  const res = storeIfEmpty(referralCode);
+
+  // Show lock message if needed
+  const lock = document.getElementById("refLockMsg");
+  if(lock && res && res.ignored){
+    lock.style.display = "block";
+    lock.innerHTML = 'Ref already applied 🔒 <b>' + (res.existing || "") + '</b> (new code ignored)';
+  }
+
+  // Track view
+  track("landing_view");
+
+  // Hook clicks
+  const map = [
+    ["btnPresale","click_presale"],
+    ["btnAirdrop","click_airdrop"],
+    ["btnStaking","click_staking"],
+    ["tgJoinBtn","click_telegram"],
+  ];
+  map.forEach(([id,ev])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("click", ()=>track(ev), {capture:true});
+  });
+})();
+</script>
+</body>
+</html>

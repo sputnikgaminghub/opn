@@ -87,7 +87,7 @@ def _send_web_push(sub: PushSubscription, payload: dict):
 def push_public_key():
     pub = _get_vapid_public_key()
     if not pub:
-        return jsonify({"ok": False, "error": "VAPID_PUBLIC_KEY not configured"}), 500
+        return jsonify({"ok": False, "error": "VAPID_PUBLIC_KEY not configured"}), 200
     return jsonify({"ok": True, "publicKey": pub})
 
 @push_api.post("/api/push/subscribe")

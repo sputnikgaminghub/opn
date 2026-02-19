@@ -1,5 +1,9 @@
 <link rel="stylesheet" href="/static/a2hs_widget.css?v={{ static_ver }}">
 
+{# PWA installability (required for Chrome's beforeinstallprompt). Kept here so it is present on all pages that include the widget. #}
+<link rel="manifest" href="/static/manifest.webmanifest?v={{ static_ver }}">
+<meta name="theme-color" content="#0b1020">
+
 <div id="a2hs-overlay" class="a2hs-hidden" aria-hidden="true">
   <div id="a2hs-sheet" role="dialog" aria-modal="true" aria-label="Add to Home Screen">
     <div class="a2hs-header">
@@ -10,6 +14,18 @@
     <div class="a2hs-actions">
       <button id="a2hs-add" class="a2hs-btn a2hs-primary" type="button">Add</button>
       <button id="a2hs-notnow" class="a2hs-btn a2hs-secondary" type="button">Not now</button>
+    </div>
+
+    <div id="a2hs-android-instructions" class="a2hs-hidden">
+      <div class="a2hs-ios-title">How to add</div>
+      <ol class="a2hs-ios-steps">
+        <li>Tap the <b>⋮</b> menu in Chrome.</li>
+        <li>Select <b>Add to Home screen</b>.</li>
+        <li>Tap <b>Add</b>.</li>
+      </ol>
+      <div class="a2hs-actions">
+        <button id="a2hs-android-ok" class="a2hs-btn a2hs-primary" type="button">OK</button>
+      </div>
     </div>
 
     <div id="a2hs-ios-instructions" class="a2hs-hidden">

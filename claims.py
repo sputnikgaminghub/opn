@@ -30,16 +30,16 @@ def _user_exists(wallet: str) -> bool:
 def _get_config():
     """Centralized config so you can tweak values later."""
     return {
-        "WINDOW_HOURS": int(request.args.get("window_hours") or 6),
-        "REWARD_APRO": float(request.args.get("reward_apro") or 1),
+        "WINDOW_HOURS": int(request.args.get("window_hours") or 1),
+        "REWARD_APRO": float(request.args.get("reward_apro") or 30),
         "REWARD_POINTS": int(request.args.get("reward_points") or 2),
-        "MAX_PER_DAY": int(request.args.get("max_per_day") or 4),
+        "MAX_PER_DAY": int(request.args.get("max_per_day") or 12),
         # Milestone bonuses (streak days => bonus OPN)
         "STREAK_BONUSES": {
-            3: 3,
-            7: 10,
-            14: 25,
-            30: 60,
+            3: 100,
+            7: 300,
+            14: 700,
+            30: 1500,
         },
     }
 
@@ -179,9 +179,10 @@ def claim_window_claim():
         streak = 1
 
     # ---- rewards ----
-    base_amount = float(cfg["REWARD_APRO"])
-    bonus_amount = float(cfg["STREAK_BONUSES"].get(streak, 0))
-    total_amount = base_amount + bonus_amount
+    # Whole-number token accounting
+    base_amount = int(round(float(cfg["REWARD_APRO"])) )
+    bonus_amount = int(round(float(cfg["STREAK_BONUSES"].get(streak, 0))))
+    total_amount = int(base_amount + bonus_amount)
     points = int(cfg["REWARD_POINTS"])
 
     # Persist
@@ -195,10 +196,10 @@ def claim_window_claim():
 
     # Return updated totals (the frontend uses this to update the sticky balance fast)
     total_earned = (
-        db.session.query(func.coalesce(func.sum(ClaimWindowClaim.amount), 0.0))
+        db.session.query(func.coalesce(func.sum(ClaimWindowClaim.amount), 0))
         .filter(ClaimWindowClaim.wallet == wallet)
         .scalar()
-        or 0.0
+        or 0
     )
 
     next_claim_at = now + timedelta(hours=cfg["WINDOW_HOURS"])
@@ -214,6 +215,6 @@ def claim_window_claim():
             "claims_today": _claims_today(wallet, now),
             "max_per_day": cfg["MAX_PER_DAY"],
             "next_claim_at": next_claim_at.isoformat(),
-            "claim_window_earnings": float(total_earned),
+            "claim_window_earnings": int(total_earned),
         }
     )

@@ -32,11 +32,15 @@
 <body>
   <div class="topbar">
     <h1>Admin • Tasks</h1>
+<form method="post" action="/admin/tasks/logout" style="margin:12px 0;">
+  <button type="submit" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:white;cursor:pointer;">Logout</button>
+</form>
+
     <div class="pill">
       Quick links:
-      <a href="/admin/announcements?key={{ request.args.get('key','') }}">Announcements</a> •
-      <a href="/admin/withdrawals?key={{ request.args.get('key','') }}">Withdrawals</a> •
-      <a href="/admin/presale?key={{ request.args.get('key','') }}">Presale</a>
+      <a href="/admin/announcements">Announcements</a> •
+      <a href="/admin/withdrawals">Withdrawals</a> •
+      <a href="/admin/presale">Presale</a>
     </div>
   </div>
 
@@ -107,9 +111,13 @@
       credentials: 'same-origin',
       ...opts
     });
-    const data = await res.json().catch(()=>({}));
+    // Some 500s return HTML (e.g., reverse proxy error pages). Grab text for debugging.
+    const raw = await res.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch(e) { data = {}; }
     if(!res.ok || data.success===false){
-      throw new Error(data.error || `Request failed (${res.status})`);
+      const msg = (data && data.error) ? data.error : (raw && raw.trim() ? raw.trim().slice(0, 300) : `Request failed (${res.status})`);
+      throw new Error(msg);
     }
     return data;
   }
@@ -187,7 +195,12 @@
     };
 
     if(id){
-      await api(`/api/admin/tasks/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+      // Prefer PUT; fall back to POST for hosts/proxies that mishandle PUT.
+      try {
+        await api(`/api/admin/tasks/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+      } catch (e) {
+        await api(`/api/admin/tasks/${id}`, { method:'POST', body: JSON.stringify(payload) });
+      }
     } else {
       await api('/api/admin/tasks', { method:'POST', body: JSON.stringify(payload) });
     }
@@ -247,8 +260,7 @@
   }
 
   window.decline = async function(id){
-    const review_note = prompt('Decline reason (optional):', '');
-    await api(`/api/admin/submissions/${id}/decline`, { method:'POST', body: JSON.stringify({ review_note }) });
+    await api(`/api/admin/submissions/${id}/decline`, { method:'POST' });
     await loadSubmissions();
   }
 

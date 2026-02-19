@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ section_title or "Admin Login" }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0a0b2d; color:white; margin:0; }
+    .wrap { max-width: 520px; margin: 60px auto; padding: 24px; }
+    .card { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 22px; }
+    h1 { margin:0 0 10px 0; font-size: 22px; }
+    p { margin:0 0 18px 0; opacity:0.85; }
+    input { width:100%; padding: 12px 12px; border-radius: 10px; border:1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.2); color:white; outline:none; }
+    button { width:100%; padding: 12px; margin-top: 12px; border-radius: 10px; border:0; background:#00ff88; font-weight:700; cursor:pointer; }
+    .err { margin-top:12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 77, 77, 0.15); border:1px solid rgba(255, 77, 77, 0.35); color:#ffb3b3; }
+    .hint { margin-top: 14px; font-size: 12px; opacity:0.7; }
+    code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>{{ section_title or "Admin Login" }}</h1>
+      <p>Enter the access key for this dashboard.</p>
+
+      <form method="post" action="{{ post_url }}">
+        <input name="key" type="password" autocomplete="current-password" placeholder="Access key" required />
+        <button type="submit">Login</button>
+      </form>
+
+      {% if error %}
+      <div class="err">{{ error }}</div>
+      {% endif %}
+
+      <div class="hint">Tip: set a strong key in Render env vars (example: <code>ADMIN_TASKS_KEY</code>).</div>
+    </div>
+  </div>
+</body>
+</html>

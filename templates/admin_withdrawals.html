@@ -34,10 +34,13 @@
     <div class="topbar">
       <div class="title">Admin • Withdrawals</div>
       <div class="actions">
-        <a class="btn secondary" href="/admin/announcements?key={{ request.args.get('key','') }}">Announcements</a>
-        <a class="btn secondary" href="/admin/tasks?key={{ request.args.get('key','') }}">Tasks</a>
+        <a class="btn secondary" href="/admin/announcements">Announcements</a>
+        <a class="btn secondary" href="/admin/tasks">Tasks</a>
         <a class="btn secondary" href="/api/admin/withdrawals/export.csv" target="_blank">Export CSV</a>
         <button class="btn" id="refreshBtn">Refresh</button>
+        <form method="post" action="/admin/withdrawals/logout" style="display:inline;">
+          <button class="btn secondary" type="submit">Logout</button>
+        </form>
       </div>
     </div>
 

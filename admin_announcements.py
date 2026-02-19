@@ -3,24 +3,60 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from flask import Blueprint, abort, jsonify, render_template, request, session
+from flask import Blueprint, abort, jsonify, render_template, request, session, redirect, url_for
 
 from extensions import db
 from models_announcements import Announcement
 
-
 admin_announcements = Blueprint("admin_announcements", __name__)
 
-ADMIN_KEY = os.getenv("ADMIN_API_KEY")
+
+def _admin_key() -> str:
+    """Per-dashboard key for Announcements.
+
+    Backward compatibility: if ADMIN_ANNOUNCEMENTS_KEY is not set, fall back to ADMIN_API_KEY.
+    """
+    return os.getenv("ADMIN_ANNOUNCEMENTS_KEY") or os.getenv("ADMIN_API_KEY", "admin123")
+
+
+def _is_admin() -> bool:
+    return session.get("admin_announcements") is True
 
 
 def require_admin():
-    if session.get("is_admin") is True:
-        return
-    if ADMIN_KEY and request.args.get("key") == ADMIN_KEY:
-        session["is_admin"] = True
-        return
-    abort(403)
+    if not _is_admin():
+        abort(403)
+
+
+@admin_announcements.get("/admin/announcements/login")
+def admin_announcements_login_page():
+    if _is_admin():
+        return redirect(url_for("admin_announcements.admin_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Announcements",
+        post_url=url_for("admin_announcements.admin_announcements_login"),
+    )
+
+
+@admin_announcements.post("/admin/announcements/login")
+def admin_announcements_login():
+    key = (request.form.get("key") or "").strip()
+    if key and str(key) == str(_admin_key()):
+        session["admin_announcements"] = True
+        return redirect(url_for("admin_announcements.admin_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Announcements",
+        post_url=url_for("admin_announcements.admin_announcements_login"),
+        error="Invalid key",
+    ), 403
+
+
+@admin_announcements.post("/admin/announcements/logout")
+def admin_announcements_logout():
+    session.pop("admin_announcements", None)
+    return redirect(url_for("admin_announcements.admin_announcements_login_page"))
 
 
 def parse_dt(v: str | None):
@@ -38,7 +74,8 @@ def parse_dt(v: str | None):
 
 @admin_announcements.get("/admin/announcements")
 def admin_page():
-    require_admin()
+    if not _is_admin():
+        return redirect(url_for("admin_announcements.admin_announcements_login_page"))
     return render_template("admin_announcements.html")
 
 
@@ -117,6 +154,7 @@ def update_announcement(aid: int):
     a.is_pinned = bool(d.get("is_pinned", False))
     a.starts_at = parse_dt(d.get("starts_at"))
     a.ends_at = parse_dt(d.get("ends_at"))
+    a.updated_at = datetime.utcnow()
 
     db.session.commit()
     return jsonify({"success": True})

@@ -1,14 +1,15 @@
 from dotenv import load_dotenv
 load_dotenv()
-from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for, make_response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, Index, func, distinct, text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Boolean, Text, Index, func, distinct, text
 from datetime import datetime, timedelta
 import hashlib
 import secrets
 import random
 import os
+import redis
 import json
 import time
 from dotenv import load_dotenv
@@ -156,8 +157,51 @@ if not secret_key:
 app.config['SECRET_KEY'] = secret_key
 app.secret_key = secret_key
 
+# --- Session & cookie hardening ---
+# Enforce a strong SECRET_KEY in production (do not allow dev fallbacks).
+if (os.getenv("RENDER") or os.getenv("FLASK_ENV") == "production") and secret_key.startswith("dev-secret-key-change"):
+    raise RuntimeError("SECRET_KEY must be set to a strong random value in production (Render/FLASK_ENV=production).")
+
+# Cookie flags (Render serves over HTTPS).
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+if os.getenv("RENDER") or os.getenv("FLASK_ENV") == "production":
+    app.config["SESSION_COOKIE_SECURE"] = True
+
+# Session expiry controls
+# NOTE: PERMANENT_SESSION_LIFETIME only applies when session.permanent=True (we set this in before_request).
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=int(os.getenv("SESSION_LIFETIME_HOURS", "1")))
+app.config["SESSION_IDLE_TIMEOUT_MINUTES"] = int(os.getenv("SESSION_IDLE_TIMEOUT_MINUTES", "15"))
+
+
+# Optional: server-side sessions (allows true revocation when using a shared store like Redis).
+# Enable by setting USE_SERVER_SIDE_SESSIONS=1 and SESSION_REDIS_URL (or REDIS_URL).
+if os.getenv("USE_SERVER_SIDE_SESSIONS", "0") == "1":
+    try:
+        from flask_session import Session  # type: ignore
+        redis_url = os.getenv("SESSION_REDIS_URL") or os.getenv("REDIS_URL")
+        if not redis_url:
+            raise RuntimeError("USE_SERVER_SIDE_SESSIONS=1 but SESSION_REDIS_URL/REDIS_URL is not set")
+        app.config["SESSION_TYPE"] = "redis"
+        app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+        app.config["SESSION_USE_SIGNER"] = True
+        app.config["SESSION_PERMANENT"] = True
+        # Optional: keep server-side session objects from growing forever
+        app.config["SESSION_KEY_PREFIX"] = os.getenv("SESSION_KEY_PREFIX", "opn:")
+        Session(app)
+    except Exception as e:
+        # Fail closed in production if explicitly enabled but misconfigured.
+        if os.getenv("RENDER") or os.getenv("FLASK_ENV") == "production":
+            raise
+        print(f"[warn] Server-side sessions not enabled: {e}")
+
 # Static asset versioning (cache-busting)
 app.config["STATIC_VER"] = os.getenv("STATIC_VER") or str(int(os.path.getmtime(__file__)))
+
+# --- Feature flags (additive UX enhancements; safe to disable quickly) ---
+FEATURE_NEXT_ACTION = (os.getenv("FEATURE_NEXT_ACTION", "1") == "1")
+FEATURE_MILESTONES = (os.getenv("FEATURE_MILESTONES", "1") == "1")
+FEATURE_TELEGRAM_CTA = (os.getenv("FEATURE_TELEGRAM_CTA", "1") == "1")
 
 
 # -------------------------------
@@ -196,8 +240,6 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-app.config["SECRET_KEY"] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 # Initialize extensions
 db.init_app(app)
@@ -213,6 +255,48 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri=os.getenv("RATE_LIMIT_STORAGE_URL", "memory://"),
 )
+
+
+# -------------------------------
+# Session lifetime + idle timeout enforcement
+# -------------------------------
+# Flask only applies PERMANENT_SESSION_LIFETIME when session.permanent=True.
+# We set it automatically when the session contains auth-sensitive state.
+
+def _session_has_auth() -> bool:
+    if flask_session.get("stake_wallet"):
+        return True
+    # Admin sections use per-dashboard flags like admin_tasks/admin_withdrawals/...
+    for k, v in list(flask_session.items()):
+        if k.startswith("admin_") and v:
+            return True
+    # Back-compat legacy flag (should be removed over time)
+    if flask_session.get("is_admin"):
+        return True
+    return False
+
+
+@app.before_request
+def _enforce_session_expiry_and_idle_timeout():
+    if not _session_has_auth():
+        return
+
+    flask_session.permanent = True
+
+    idle_minutes = int(app.config.get("SESSION_IDLE_TIMEOUT_MINUTES", 15))
+    try:
+        now_ts = int(time.time())
+    except Exception:
+        return
+
+    last_seen = flask_session.get("_last_seen_ts")
+    if isinstance(last_seen, int) and idle_minutes > 0:
+        if now_ts - last_seen > idle_minutes * 60:
+            # Idle timeout: clear all session state.
+            flask_session.clear()
+            return
+
+    flask_session["_last_seen_ts"] = now_ts
 
 # Make static version available in all templates
 @app.context_processor
@@ -268,6 +352,13 @@ def _fetch_prices_from_coingecko(timeout=10):
 # Environment variables
 ADMIN_WALLET = os.getenv('ADMIN_WALLET', '0x252cC763F8ae67500C96F0946aC4F64844c987B1')
 ADMIN_API_KEY = os.getenv('ADMIN_API_KEY', 'admin123')
+
+# Separate per-dashboard admin keys (recommended). If not set, dashboards fall back to ADMIN_API_KEY.
+ADMIN_TASKS_KEY = os.getenv('ADMIN_TASKS_KEY')
+ADMIN_WITHDRAWALS_KEY = os.getenv('ADMIN_WITHDRAWALS_KEY')
+ADMIN_ANNOUNCEMENTS_KEY = os.getenv('ADMIN_ANNOUNCEMENTS_KEY')
+ADMIN_PRESALE_KEY = os.getenv('ADMIN_PRESALE_KEY')
+
 MAX_WALLETS_PER_IP = int(os.getenv('MAX_WALLETS_PER_IP', 5))
 IP_BAN_HOURS = int(os.getenv('IP_BAN_HOURS', 6))
 PRESALE_WALLET = os.getenv('PRESALE_WALLET', '0xa84e6D0Fa3B35b18FF7C65568C711A85Ac1A9FC7')
@@ -282,7 +373,10 @@ WITHDRAWAL_FEE_WALLET_DEFAULT = os.getenv('WITHDRAWAL_FEE_WALLET', ADMIN_WALLET)
 # 0.0050 ETH and 0.016 BNB
 ETH_FEE_WEI_DEFAULT = os.getenv('WITHDRAWAL_ETH_FEE_WEI', '5000000000000000')
 BSC_FEE_WEI_DEFAULT = os.getenv('WITHDRAWAL_BSC_FEE_WEI', '16000000000000000')
-WITHDRAWAL_SUPPORT_URL_DEFAULT = os.getenv('WITHDRAWAL_SUPPORT_URL', 'https://t.me/opinion_token')
+WITHDRAWAL_SUPPORT_URL_DEFAULT = os.getenv('WITHDRAWAL_SUPPORT_URL', 'https://t.me/opinion_labsxyz')
+
+# Public community channel (for onboarding/CTAs). Kept separate from the support URL above.
+TELEGRAM_CHANNEL_URL_DEFAULT = os.getenv('TELEGRAM_CHANNEL_URL', 'https://t.me/opinion_token')
 
 # Achievement definitions
 ACHIEVEMENTS = [
@@ -290,8 +384,63 @@ ACHIEVEMENTS = [
     {"id": "first_ref", "name": "First Referral", "icon": "🥇", "requirement": 1, "reward": 11},
     {"id": "active_network", "name": "Network Builder", "icon": "🌐", "requirement": 3, "reward": 111},
     {"id": "five_ref", "name": "Referral Master", "icon": "🏆", "requirement": 5, "reward": 500},
-    {"id": "withdrawal_ready", "name": "Ready to Cash Out", "icon": "💰", "requirement": 6, "reward": 1500}
+    # Withdrawal eligibility is based on *direct* referrals (see _withdrawal_eligibility()).
+    {"id": "withdrawal_ready", "name": "Ready to Cash Out", "icon": "💰", "requirement": 7, "reward": 1500}
 ]
+
+# Welcome bonus (base rewards)
+# New behavior: a per-wallet welcome bonus is assigned ONCE on the first
+# /api/check-wallet ("Check eligibility") call, and is then reused everywhere
+# (claim, balances, leaderboard, etc.) to prevent rerolls.
+WELCOME_BONUS_MIN = int(os.getenv('WELCOME_BONUS_MIN', 100))
+WELCOME_BONUS_MAX = int(os.getenv('WELCOME_BONUS_MAX', 1500))
+
+# Tiered rarity distribution: higher ranges are progressively rarer.
+# Probabilities should sum to 1.0 (fallback logic exists for rounding errors).
+WELCOME_BONUS_TIERS = [
+    (100, 300, 0.55),
+    (301, 600, 0.25),
+    (601, 900, 0.12),
+    (901, 1200, 0.06),
+    (1201, 1500, 0.02),
+]
+
+def generate_weighted_welcome_bonus() -> int:
+    """Return an integer welcome bonus in [WELCOME_BONUS_MIN, WELCOME_BONUS_MAX].
+
+    Distribution is skewed so higher rewards are rarer.
+    """
+    import random
+
+    r = random.random()
+    cumulative = 0.0
+    for lo, hi, p in WELCOME_BONUS_TIERS:
+        cumulative += float(p)
+        if r < cumulative:
+            return int(random.randint(int(lo), int(hi)))
+    # Fallback (misconfigured tiers or floating error)
+    return int(random.randint(int(WELCOME_BONUS_MIN), int(WELCOME_BONUS_MAX)))
+
+
+def assign_welcome_bonus_if_needed(user: 'User') -> int:
+    """Assign and persist a welcome bonus once per wallet.
+
+    Rule: assign immediately on the first eligibility check ("Check eligibility"),
+    and never reroll for the same wallet.
+    """
+    try:
+        current = int(getattr(user, 'welcome_bonus', 0) or 0)
+    except Exception:
+        current = 0
+
+    if current > 0:
+        return current
+
+    user.welcome_bonus = int(generate_weighted_welcome_bonus())
+    user.welcome_bonus_assigned_at = datetime.utcnow()
+    db.session.add(user)
+    db.session.commit()
+    return int(user.welcome_bonus)
 
 # Database Models
 class User(db.Model):
@@ -309,6 +458,18 @@ class User(db.Model):
     last_active = Column(DateTime, default=datetime.utcnow, nullable=False)
     # Task system (ported from tasks.zip): separate from referrals/presale.
     task_points = Column(Integer, default=0, nullable=False)
+    # Gamification: levels / streaks / rank (additive, safe defaults)
+    level = Column(Integer, default=1, nullable=False)
+    xp = Column(Integer, default=0, nullable=False)  # mirrors task_points by default, can diverge later
+    streak_current = Column(Integer, default=0, nullable=False)
+    streak_longest = Column(Integer, default=0, nullable=False)
+    streak_last_date = Column(Date, nullable=True)
+    rank_tier = Column(String(30), default='Rookie', nullable=False)
+
+    # Welcome bonus (base rewards). Assigned ONCE on first eligibility check.
+    # 0 means "not assigned yet".
+    welcome_bonus = Column(Integer, default=0, nullable=False)
+    welcome_bonus_assigned_at = Column(DateTime, nullable=True)
     
     __table_args__ = (
         Index('idx_referrer', 'referrer'),
@@ -327,7 +488,16 @@ class User(db.Model):
             'active': self.active,
             'ip_address': self.ip_address,
             'last_active': self.last_active.isoformat(),
-            'task_points': self.task_points
+            'task_points': self.task_points,
+            'level': self.level,
+            'xp': self.xp,
+            'streak_current': self.streak_current,
+            'streak_longest': self.streak_longest,
+            'streak_last_date': self.streak_last_date.isoformat() if self.streak_last_date else None,
+            'rank_tier': self.rank_tier
+            ,
+            'welcome_bonus': int(self.welcome_bonus or 0),
+            'welcome_bonus_assigned_at': self.welcome_bonus_assigned_at.isoformat() if self.welcome_bonus_assigned_at else None
         }
 
 class AirdropClaim(db.Model):
@@ -335,10 +505,13 @@ class AirdropClaim(db.Model):
     
     id = Column(Integer, primary_key=True)
     wallet = Column(String(42), nullable=False, index=True)
-    amount = Column(Float, nullable=False)
-    base_amount = Column(Float, nullable=False, default=1005.0)
-    referral_bonus = Column(Float, nullable=False, default=0.0)
-    achievement_rewards = Column(Float, nullable=False, default=0.0)
+    # Token accounting is whole-number integer (avoid Float rounding drift).
+    # NOTE: If you already have a DB with Float columns, you must migrate these columns.
+    amount = Column(Integer, nullable=False)
+    # Stored base amount used for this claim. Always set explicitly on insert.
+    base_amount = Column(Integer, nullable=False, default=0)
+    referral_bonus = Column(Integer, nullable=False, default=0)
+    achievement_rewards = Column(Integer, nullable=False, default=0)
     referral_count = Column(Integer, nullable=False, default=0)
     referrer = Column(String(42), nullable=True)
     tx_hash = Column(String(128), unique=True, nullable=False)
@@ -352,10 +525,10 @@ class AirdropClaim(db.Model):
     
     def to_dict(self):
         return {
-            'amount': self.amount,
-            'base_amount': self.base_amount,
-            'referral_bonus': self.referral_bonus,
-            'achievement_rewards': self.achievement_rewards,
+            'amount': int(self.amount or 0),
+            'base_amount': int(self.base_amount or 0),
+            'referral_bonus': int(self.referral_bonus or 0),
+            'achievement_rewards': int(self.achievement_rewards or 0),
             'referral_count': self.referral_count,
             'referrer': self.referrer,
             'tx_hash': self.tx_hash,
@@ -403,6 +576,64 @@ class Notification(db.Model):
         Index('idx_wallet_read', 'wallet', 'read'),
         Index('idx_timestamp', 'timestamp'),
     )
+
+
+class ActivityLog(db.Model):
+    """Append-only activity stream used for the dashboard 'Recent activity' UI."""
+
+    __tablename__ = 'activity_logs'
+
+    id = Column(Integer, primary_key=True)
+    wallet = Column(String(42), nullable=False, index=True)
+    type = Column(String(32), nullable=False)
+    message = Column(Text, nullable=False)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index('idx_activity_wallet_created', 'wallet', 'created_at'),
+        Index('idx_activity_created', 'created_at'),
+    )
+
+    def to_dict(self):
+        md = None
+        if self.metadata_json:
+            try:
+                md = json.loads(self.metadata_json)
+            except Exception:
+                md = None
+        return {
+            'id': self.id,
+            'wallet': self.wallet,
+            'type': self.type,
+            'message': self.message,
+            'metadata': md,
+            'created_at': self.created_at.isoformat(),
+        }
+
+
+def _log_activity(wallet: str, event_type: str, message: str, metadata: dict | None = None):
+    """Best-effort activity logger (never raises)."""
+    try:
+        w = (wallet or '').strip().lower()
+        if not w:
+            return
+        md_json = None
+        if metadata is not None:
+            try:
+                md_json = json.dumps(metadata, separators=(",", ":"), ensure_ascii=False)
+            except Exception:
+                md_json = None
+        db.session.add(ActivityLog(
+            wallet=w,
+            type=(event_type or 'event')[:32],
+            message=(message or '')[:500],
+            metadata_json=md_json,
+            created_at=datetime.utcnow(),
+        ))
+    except Exception:
+        # Never break critical flows for analytics.
+        return
 
 class IPRestriction(db.Model):
     __tablename__ = 'ip_restrictions'
@@ -560,10 +791,10 @@ class AirdropSystem:
         return f"REF-{hashlib.md5(wallet_address.encode()).hexdigest()[:8].upper()}"
     
     @staticmethod
-    def calculate_airdrop_amount(referral_count, achievement_rewards=0):
-        base_amount = 1005.0
-        referral_bonus = referral_count * 121
-        return base_amount + referral_bonus + achievement_rewards
+    def calculate_airdrop_amount(base_amount: int, referral_count: int, achievement_rewards: int = 0) -> int:
+        """Compute total claim amount (whole-number tokens)."""
+        referral_bonus = int(referral_count or 0) * 121
+        return int(base_amount or 0) + int(referral_bonus) + int(achievement_rewards or 0)
     
     @staticmethod
     def generate_tx_hash():
@@ -649,19 +880,19 @@ def calculate_achievement_rewards(wallet_address):
     return achievement_rewards
 
 
-def calculate_claim_window_earnings(wallet_address: str) -> float:
-    """Sum of all 6-hour claim window rewards credited to a wallet."""
+def calculate_claim_window_earnings(wallet_address: str) -> int:
+    """Sum of all claim window rewards credited to a wallet (whole numbers)."""
     try:
         from models_claims import ClaimWindowClaim  # local import to avoid any circular edge cases
 
         total = (
-            db.session.query(func.coalesce(func.sum(ClaimWindowClaim.amount), 0.0))
+            db.session.query(func.coalesce(func.sum(ClaimWindowClaim.amount), 0))
             .filter(ClaimWindowClaim.wallet == wallet_address)
             .scalar()
         )
-        return float(total or 0.0)
+        return int(total or 0)
     except Exception:
-        return 0.0
+        return 0
 
 # ==================== WEB3 PRESALE TRANSACTION ENDPOINTS ====================
 
@@ -684,7 +915,7 @@ class AnalyticsEvent(db.Model):
 @limiter.limit("10 per minute")
 def record_transaction():
     try:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         
         required_fields = ['user_address', 'usd_amount', 'crypto_amount', 
                           'token', 'token_name', 'tx_hash', 'network']
@@ -749,6 +980,7 @@ def record_transaction():
                 last_active=datetime.utcnow()
             )
             db.session.add(user)
+            _touch_user_activity(user, datetime.utcnow())
         
         notification = Notification(
             id=AirdropSystem.generate_notification_id(),
@@ -779,13 +1011,9 @@ def record_transaction():
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
     try:
-        admin_key = request.args.get('admin_key', '')
-        if admin_key != ADMIN_API_KEY:
-            return jsonify({
-                'success': False, 
-                'error': 'Unauthorized'
-            }), 401
-        
+        if not flask_session.get('admin_presale') is True:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
         transactions = PresaleTransaction.query.order_by(
             PresaleTransaction.timestamp.desc()
         ).all()
@@ -902,10 +1130,68 @@ def _withdrawals_open(cfg: WithdrawalConfig) -> bool:
     return datetime.utcnow() >= (cfg.withdrawal_open_at or datetime.utcnow())
 
 
+def _withdrawal_eligibility(wallet_address: str, cfg: 'WithdrawalConfig' = None) -> dict:
+    """Single source of truth for withdrawal eligibility.
+
+    Eligibility policy:
+    - Based on *direct* referrals only: user.referral_count >= min_referrals_to_withdraw.
+    - Withdrawals must be open.
+    - Only one queued withdrawal at a time.
+
+    Returns a dict safe for API responses.
+    """
+    wallet_address = (wallet_address or '').strip().lower()
+    cfg = cfg or _get_withdrawal_config()
+    user = User.query.get(wallet_address)
+
+    required = int(cfg.min_referrals_to_withdraw or 7)
+    withdrawals_open = bool(_withdrawals_open(cfg))
+    direct_referrals = int(getattr(user, 'referral_count', 0) or 0) if user else 0
+
+    pending = WithdrawalRequest.query.filter(
+        WithdrawalRequest.wallet == wallet_address,
+        WithdrawalRequest.status == 'queued'
+    ).first() if user else None
+
+    eligible_by_referrals = direct_referrals >= required
+    has_pending_withdrawal = pending is not None
+    is_eligible = bool(user) and withdrawals_open and eligible_by_referrals and (not has_pending_withdrawal)
+
+    if not user:
+        reason_code = 'user_not_found'
+        message = 'User not found'
+    elif not withdrawals_open:
+        reason_code = 'not_open'
+        message = 'Withdrawals are not open yet.'
+    elif not eligible_by_referrals:
+        reason_code = 'not_eligible'
+        message = f'Need {max(0, required - direct_referrals)} more direct referral(s) to withdraw.'
+    elif has_pending_withdrawal:
+        reason_code = 'pending_exists'
+        message = 'You already have a queued withdrawal request.'
+    else:
+        reason_code = 'ok'
+        message = 'Eligible for withdrawal'
+
+    return {
+        'wallet': wallet_address,
+        'withdrawals_open': withdrawals_open,
+        'withdrawals_open_at': cfg.withdrawal_open_at.isoformat() if cfg.withdrawal_open_at else None,
+        'required_referrals': required,
+        'direct_referrals': direct_referrals,
+        'eligible_by_referrals': eligible_by_referrals,
+        'has_pending_withdrawal': has_pending_withdrawal,
+        'pending_withdrawal_id': pending.id if pending else None,
+        'is_eligible': is_eligible,
+        'reason_code': reason_code,
+        'message': message,
+    }
+
+
 def _compute_withdrawable_balance(wallet_address: str) -> dict:
     """Compute withdrawable balance (whole numbers).
 
-    Per spec: joining bonus + referral rewards + achievements + task rewards
+    Per spec: joining bonus + referral rewards + achievements + task rewards + claim-window rewards
     minus queued/paid withdrawal amounts.
     """
     user = User.query.get(wallet_address)
@@ -915,16 +1201,19 @@ def _compute_withdrawable_balance(wallet_address: str) -> dict:
             'referral_earnings': 0,
             'achievement_earnings': 0,
             'task_earnings': 0,
+            'claim_window_earnings': 0,
             'total_earned': 0,
             'total_withdrawn': 0,
             'withdrawable': 0,
         }
 
-    welcome_bonus = 1005
+    # Welcome bonus is assigned once on first eligibility check.
+    welcome_bonus = int(getattr(user, 'welcome_bonus', 0) or 0)
     referral_earnings = int(user.referral_count or 0) * 121
     achievement_earnings = int(calculate_achievement_rewards(wallet_address) or 0)
     task_earnings = int(getattr(user, 'task_points', 0) or 0)
-    total_earned = int(welcome_bonus + referral_earnings + achievement_earnings + task_earnings)
+    claim_window_earnings = int(calculate_claim_window_earnings(wallet_address) or 0)
+    total_earned = int(welcome_bonus + referral_earnings + achievement_earnings + task_earnings + claim_window_earnings)
 
     withdrawn_sum = db.session.query(func.coalesce(func.sum(WithdrawalRequest.amount), 0)).filter(
         WithdrawalRequest.wallet == wallet_address,
@@ -938,20 +1227,149 @@ def _compute_withdrawable_balance(wallet_address: str) -> dict:
         'referral_earnings': int(referral_earnings),
         'achievement_earnings': int(achievement_earnings),
         'task_earnings': int(task_earnings),
+        'claim_window_earnings': int(claim_window_earnings),
         'total_earned': int(total_earned),
         'total_withdrawn': int(total_withdrawn),
         'withdrawable': int(withdrawable),
     }
+def _compute_balances_v1(wallet_address: str) -> dict:
+    """Canonical balance computation used for uniform dashboard display.
+
+    Notes:
+    - Withdrawal eligibility + withdrawable amount are based on _compute_withdrawable_balance().
+      Claim-window earnings are included in withdrawable.
+    - This is safe to call for any wallet already known to the system.
+    """
+    wallet_address = (wallet_address or '').strip().lower()
+    user = User.query.get(wallet_address)
+
+    # Welcome bonus is assigned once on first eligibility check.
+    welcome_bonus = int(getattr(user, 'welcome_bonus', 0) or 0) if user else 0
+    referral_earnings = int((getattr(user, 'referral_count', 0) or 0)) * 121 if user else 0
+    achievement_earnings = int(calculate_achievement_rewards(wallet_address) or 0) if user else 0
+    task_earnings = int(getattr(user, 'task_points', 0) or 0) if user else 0
+    claim_window_earnings = int(calculate_claim_window_earnings(wallet_address) or 0) if user else 0
+
+    # Gross "portfolio" total (what the sticky header should consistently show)
+    total_gross = int(welcome_bonus + referral_earnings + achievement_earnings + task_earnings + claim_window_earnings)
+
+    # Withdrawals remain per existing rule set
+    wd = _compute_withdrawable_balance(wallet_address)
+
+    return {
+        'welcome_bonus': int(welcome_bonus),
+        'referral_earnings': int(referral_earnings),
+        'achievement_earnings': int(achievement_earnings),
+        'task_earnings': int(task_earnings),
+        'claim_window_earnings': int(claim_window_earnings),
+        'total_gross': int(total_gross),
+        'total_withdrawn': int(wd.get('total_withdrawn', 0) or 0),
+        'withdrawable': int(wd.get('withdrawable', 0) or 0),
+        # Single source of truth for the dashboard sticky balance.
+        'display_total': int(total_gross),
+        'version': 1,
+        'computed_at': datetime.utcnow().isoformat() + 'Z',
+    }
 
 
 def _active_referrals_count(wallet_address: str) -> int:
-    direct_referrals = Referral.query.filter_by(referrer=wallet_address).all()
-    active = 0
-    for referral in direct_referrals:
-        claim = AirdropClaim.query.filter_by(wallet=referral.referee).first()
-        if claim:
-            active += 1
-    return active
+    """Active referrals = *direct* referrals that have **2+ downlines**.
+
+    Downlines are defined as referrals made by the referred wallet (i.e. rows in `referrals`
+    where `referrer = referee_wallet`).
+    """
+    direct = Referral.query.filter_by(referrer=wallet_address).all()
+    if not direct:
+        return 0
+
+    referee_wallets = [r.referee for r in direct]
+    # Count how many referrals each referee has made (their downlines).
+    rows = db.session.query(Referral.referrer, func.count(Referral.id)) \
+        .filter(Referral.referrer.in_(referee_wallets)) \
+        .group_by(Referral.referrer).all()
+    downline_counts = {ref: int(cnt) for ref, cnt in rows}
+
+    return sum(1 for r in direct if downline_counts.get(r.referee, 0) >= 2)
+
+
+
+
+# ------------------------------
+# Gamification helpers (level / streak / rank)
+# ------------------------------
+_LEVEL_THRESHOLDS = [0, 100, 250, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400, 6500]
+
+def _compute_level_from_xp(xp: int) -> int:
+    xp = int(xp or 0)
+    lvl = 1
+    for i, t in enumerate(_LEVEL_THRESHOLDS, start=1):
+        if xp >= t:
+            lvl = i
+        else:
+            break
+    return max(1, lvl)
+
+def _compute_rank_tier(active_referrals: int, level: int) -> str:
+    # Primary driver: active referrals; level is a small kicker.
+    a = int(active_referrals or 0)
+    l = int(level or 1)
+    if a >= 30:
+        return "Titan"
+    if a >= 15:
+        return "Leader"
+    if a >= 7:
+        return "Influencer"
+    if a >= 3:
+        return "Connector"
+    if a >= 1:
+        return "Builder"
+    # Higher level but no active referrals yet: still Rookie.
+    return "Rookie"
+
+def _update_streak(user: 'User', now: datetime) -> None:
+    try:
+        today = now.date()
+    except Exception:
+        return
+    last = getattr(user, 'streak_last_date', None)
+
+    if not last:
+        user.streak_current = max(int(user.streak_current or 0), 1)
+        user.streak_longest = max(int(user.streak_longest or 0), int(user.streak_current or 1))
+        user.streak_last_date = today
+        return
+
+    if today == last:
+        return  # already counted today
+
+    # Consecutive day?
+    if today == (last + timedelta(days=1)):
+        user.streak_current = int(user.streak_current or 0) + 1
+    else:
+        user.streak_current = 1
+
+    user.streak_longest = max(int(user.streak_longest or 0), int(user.streak_current or 1))
+    user.streak_last_date = today
+
+def _sync_gamification_fields(user: 'User') -> None:
+    # Default xp mirrors task_points (keeps schema flexible for future XP sources).
+    user.xp = int(getattr(user, 'xp', 0) or 0)
+    if user.xp == 0 and int(getattr(user, 'task_points', 0) or 0) > 0:
+        user.xp = int(user.task_points or 0)
+
+    user.level = _compute_level_from_xp(user.xp)
+
+    # Rank tier uses active referrals + level
+    active_cnt = _active_referrals_count(user.wallet)
+    user.rank_tier = _compute_rank_tier(active_cnt, user.level)
+
+
+
+def _touch_user_activity(user: 'User', now: datetime | None = None) -> None:
+    now = now or datetime.utcnow()
+    user.last_active = now
+    _update_streak(user, now)
+    _sync_gamification_fields(user)
 
 
 def _rpc_post_json(url: str, payload: dict) -> dict:
@@ -1124,23 +1542,171 @@ def check_withdrawal_eligibility():
     if not wallet_address:
         return jsonify({'success': False, 'message': 'Wallet address required'})
     
-    user = User.query.get(wallet_address)
-    if not user:
-        return jsonify({'success': False, 'message': 'User not found'})
-    
-    cfg = _get_withdrawal_config()
-    active_referrals_count = _active_referrals_count(wallet_address)
-    required = int(cfg.min_referrals_to_withdraw or 7)
-    is_eligible = active_referrals_count >= required
-    
+    elig = _withdrawal_eligibility(wallet_address)
+    if elig.get('reason_code') == 'user_not_found':
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    remaining = max(0, int(elig.get('required_referrals', 7)) - int(elig.get('direct_referrals', 0)))
     return jsonify({
         'success': True,
-        'is_eligible': is_eligible,
-        'referral_count': active_referrals_count,
-        'required_count': required,
-        'remaining_needed': max(0, required - active_referrals_count),
-        'message': 'Eligible for withdrawal' if is_eligible else f'Need {max(0, required - active_referrals_count)} more active referrals'
+        'is_eligible': bool(elig.get('is_eligible')),
+        'withdrawals_open': bool(elig.get('withdrawals_open')),
+        'withdrawals_open_at': elig.get('withdrawals_open_at'),
+        'referral_count': int(elig.get('direct_referrals', 0)),
+        'required_count': int(elig.get('required_referrals', 7)),
+        'remaining_needed': int(remaining),
+        'message': elig.get('message'),
+        'reason_code': elig.get('reason_code'),
     })
+
+@app.route('/api/next-action', methods=['GET'])
+def next_action():
+    if not FEATURE_NEXT_ACTION:
+        return jsonify({'success': True, 'disabled': True, 'data': None})
+
+    wallet_address = request.args.get('wallet', '').strip().lower()
+    if not wallet_address:
+        return jsonify({'success': False, 'message': 'Wallet address required'}), 400
+
+    user = User.query.get(wallet_address)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    cfg = _get_withdrawal_config()
+    elig = _withdrawal_eligibility(wallet_address, cfg=cfg)
+    direct_cnt = int(elig.get('direct_referrals', 0) or 0)
+    required = int(elig.get('required_referrals', 7) or 7)
+
+    claim = AirdropClaim.query.filter_by(wallet=wallet_address).first()
+    pending = WithdrawalRequest.query.filter_by(wallet=wallet_address, status='queued').first()
+
+    now = datetime.utcnow()
+    withdrawals_open = bool(cfg.withdrawals_enabled) and (cfg.withdrawal_open_at is None or now >= cfg.withdrawal_open_at)
+
+    # Default response
+    title = "Your next step"
+    body = "Keep your dashboard up to date."
+    cta_text = "Go to Overview"
+    cta_target = "overview"
+    severity = "info"
+
+    # If withdrawals are not yet open, always show the Telegram safety banner
+    # (prevents the "claim" CTA from occupying this slot).
+    if (not withdrawals_open) and bool(cfg.withdrawals_enabled):
+        open_at = cfg.withdrawal_open_at.isoformat() if cfg.withdrawal_open_at else None
+        title = "Withdrawals aren't open yet"
+        body = "Join the official Telegram for withdrawal schedule updates and scam alerts."
+        cta_text = "Open Telegram"
+        cta_target = "telegram"
+        severity = "warning"
+        return jsonify({'success': True, 'data': {
+            'title': title, 'body': body, 'cta_text': cta_text, 'cta_target': cta_target,
+            'severity': severity, 'direct_referrals': direct_cnt, 'required_referrals': required,
+            'withdrawals_open_at': open_at, 'has_claim': (claim is not None), 'has_pending_withdrawal': False
+        }})
+
+    # Remove the redundant "Claim your welcome allocation" card.
+    # The main Overview already provides a dedicated welcome-claim CTA.
+    if claim is None:
+        return jsonify({'success': True, 'data': None})
+
+    if pending is not None:
+        title = "Withdrawal in progress"
+        body = "You already have a queued withdrawal request. We'll post status updates in the dashboard."
+        cta_text = "View Withdrawals"
+        cta_target = "withdrawals"
+        severity = "info"
+    elif withdrawals_open and direct_cnt >= required:
+        title = "You're eligible to withdraw"
+        body = f"You have {direct_cnt} direct referrals (need {required}). Submit a withdrawal request when ready."
+        cta_text = "Withdraw"
+        cta_target = "withdrawals"
+        severity = "success"
+    else:
+        remaining = max(0, required - direct_cnt)
+        title = "Grow your direct referrals"
+        body = f"You need {remaining} more direct referral(s) to withdraw."
+        cta_text = "Open Network"
+        cta_target = "network"
+        severity = "info"
+
+    return jsonify({'success': True, 'data': {
+        'title': title,
+        'body': body,
+        'cta_text': cta_text,
+        'cta_target': cta_target,
+        'severity': severity,
+        'direct_referrals': direct_cnt,
+        'required_referrals': required,
+        'withdrawals_open_at': (cfg.withdrawal_open_at.isoformat() if cfg.withdrawal_open_at else None),
+        'has_claim': claim is not None,
+        'has_pending_withdrawal': pending is not None
+    }})
+
+
+@app.route('/api/milestones', methods=['GET'])
+def milestones():
+    """Read-only computed milestones used to make progress feel tangible.
+
+    Additive endpoint: does NOT modify balances/referrals/withdrawals logic.
+    """
+    if not FEATURE_MILESTONES:
+        return jsonify({'success': True, 'disabled': True, 'data': []})
+
+    wallet_address = request.args.get('wallet', '').strip().lower()
+    if not wallet_address:
+        return jsonify({'success': False, 'message': 'Wallet address required'}), 400
+
+    user = User.query.get(wallet_address)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
+    # Core inputs
+    direct_referrals = Referral.query.filter_by(referrer=wallet_address).count()
+    claim = AirdropClaim.query.filter_by(wallet=wallet_address).first()
+    cfg = _get_withdrawal_config()
+    required_direct = int(cfg.min_referrals_to_withdraw or 7)
+
+    # Milestones are intentionally simple and mobile-friendly.
+    items = []
+
+    def add_item(_id: str, title: str, current: int, target: int, subtitle: str = ''):
+        pct = 0
+        if target > 0:
+            pct = int(min(100, round((current / target) * 100)))
+        items.append({
+            'id': _id,
+            'title': title,
+            'subtitle': subtitle,
+            'current': int(current),
+            'target': int(target),
+            'pct': pct,
+            'done': bool(current >= target)
+        })
+
+    # Claim readiness
+    add_item('claim', 'Claimed', 1 if claim else 0, 1, 'Claiming initializes your allocation and dashboard.')
+
+    # Referral growth
+    add_item('ref_3', 'Direct referrals', direct_referrals, 3, 'Build your first small network.')
+    add_item('ref_5', 'Direct referrals', direct_referrals, 5, 'Strengthen your network base.')
+    add_item('ref_10', 'Direct referrals', direct_referrals, 10, 'You’re building momentum.')
+
+    # Active referrals (separate from withdrawal eligibility)
+    active_referrals = _active_referrals_count(wallet_address)
+    add_item('active_ref_1', 'Active referrals', active_referrals, 1, 'Active = a direct referral with 2+ downlines.')
+    add_item('active_ref_3', 'Active referrals', active_referrals, 3, 'A healthy core of active users.')
+
+    # Withdrawal eligibility
+    add_item('withdraw', 'Withdrawal eligibility', direct_referrals, required_direct,
+             f'Requires {required_direct} direct referrals to withdraw.')
+
+    return jsonify({'success': True, 'data': {
+        'wallet': wallet_address,
+        'required_referrals': required_direct,
+        'items': items
+    }})
+
 
 @app.route('/api/simulate-withdrawal', methods=['POST'])
 @limiter.limit("5 per minute")
@@ -1156,14 +1722,16 @@ def simulate_withdrawal():
         return jsonify({'success': False, 'message': 'User not found'})
 
     cfg = _get_withdrawal_config()
+    elig = _withdrawal_eligibility(wallet_address, cfg=cfg)
     balances = _compute_withdrawable_balance(wallet_address)
-    active_referrals_count = _active_referrals_count(wallet_address)
-    required = int(cfg.min_referrals_to_withdraw or 7)
+    balances['claim_window_earnings'] = int(calculate_claim_window_earnings(wallet_address) or 0)
+    direct_referrals_count = int(elig.get('direct_referrals', 0) or 0)
+    required = int(elig.get('required_referrals', 7) or 7)
     
     withdrawal_attempt = WithdrawalAttempt(
         wallet=wallet_address,
-        referral_count=active_referrals_count,
-        eligible=(active_referrals_count >= required),
+        referral_count=direct_referrals_count,
+        eligible=(direct_referrals_count >= required),
         attempted_at=datetime.utcnow(),
         status='checked',
         notes='User checked withdrawal eligibility'
@@ -1171,13 +1739,13 @@ def simulate_withdrawal():
     db.session.add(withdrawal_attempt)
     db.session.commit()
     
-    if active_referrals_count < required:
+    if direct_referrals_count < required:
         return jsonify({
             'success': True,
             'is_eligible': False,
-            'referral_count': active_referrals_count,
+            'referral_count': direct_referrals_count,
             'required_count': required,
-            'remaining_needed': max(0, required - active_referrals_count),
+            'remaining_needed': max(0, required - direct_referrals_count),
             'balances': {
                 'welcome_bonus': balances['welcome_bonus'],
                 'referral_earnings': balances['referral_earnings'],
@@ -1187,13 +1755,13 @@ def simulate_withdrawal():
                 'available_for_withdrawal': 0,
             },
             'message': f'❌ You are not yet eligible for withdrawals. Ensure you invite at least {required} friends to unlock withdrawal access ✨',
-            'progress_message': f'📈 Progress to Unlock Withdrawals\nYou need {max(0, required - active_referrals_count)} more referrals to unlock withdrawal access.\nInvite friends now to secure your airdrop position!\nCurrent Referrals: [{active_referrals_count}/{required}]'
+            'progress_message': f'📈 Progress to Unlock Withdrawals\nYou need {max(0, required - direct_referrals_count)} more referrals to unlock withdrawal access.\nInvite friends now to secure your airdrop position!\nCurrent Referrals: [{direct_referrals_count}/{required}]'
         })
     
     return jsonify({
         'success': True,
         'is_eligible': True,
-        'referral_count': active_referrals_count,
+        'referral_count': direct_referrals_count,
         'balances': {
             'welcome_bonus': balances['welcome_bonus'],
             'referral_earnings': balances['referral_earnings'],
@@ -1203,7 +1771,7 @@ def simulate_withdrawal():
             'total_withdrawn': balances['total_withdrawn'],
             'available_for_withdrawal': balances['withdrawable'],
         },
-        'message': f'🎉 Congratulations! You\'ve unlocked withdrawal eligibility!\n\nWithdrawals will be available starting {cfg.withdrawal_open_at.strftime("%B %d, %Y")}.\nCurrent Referrals: [{active_referrals_count}/{required}]',
+        'message': f'🎉 Congratulations! You\'ve unlocked withdrawal eligibility!\n\nWithdrawals will be available starting {cfg.withdrawal_open_at.strftime("%B %d, %Y")}.\nCurrent Referrals: [{direct_referrals_count}/{required}]',
         'withdrawal_open_at': cfg.withdrawal_open_at.isoformat(),
         'withdrawals_open': _withdrawals_open(cfg),
         'note': 'Withdrawals are processed manually after fee verification.'
@@ -1222,8 +1790,11 @@ def api_withdrawal_config():
         return jsonify({'success': False, 'message': 'User not found'}), 404
 
     balances = _compute_withdrawable_balance(wallet_address)
-    active_refs = _active_referrals_count(wallet_address)
-    required = int(cfg.min_referrals_to_withdraw or 7)
+    # For UI breakdown only (does not affect withdrawable rules)
+    balances['claim_window_earnings'] = int(calculate_claim_window_earnings(wallet_address) or 0)
+    elig = _withdrawal_eligibility(wallet_address, cfg=cfg)
+    direct_refs = int(elig.get('direct_referrals', 0) or 0)
+    required = int(elig.get('required_referrals', 7) or 7)
 
     guard = _wallet_guard(wallet_address)
     banned = _guard_check_ban(guard)
@@ -1239,8 +1810,8 @@ def api_withdrawal_config():
         'withdrawal_open_at': cfg.withdrawal_open_at.isoformat(),
         'withdrawals_open': _withdrawals_open(cfg),
         'min_referrals_to_withdraw': required,
-        'referral_count': active_refs,
-        'eligible_by_referrals': active_refs >= required,
+        'referral_count': direct_refs,
+        'eligible_by_referrals': direct_refs >= required,
         'balances': balances,
         'fee_wallet': cfg.fee_wallet_address,
         'fees': {
@@ -1294,15 +1865,16 @@ def api_withdrawal_submit():
             'withdrawal_open_at': cfg.withdrawal_open_at.isoformat(),
         }), 400
 
-    # Referral threshold check
-    active_refs = _active_referrals_count(wallet_address)
-    required = int(cfg.min_referrals_to_withdraw or 7)
-    if active_refs < required:
+    # Referral threshold check (direct referrals only)
+    elig = _withdrawal_eligibility(wallet_address, cfg=cfg)
+    direct_refs = int(elig.get('direct_referrals', 0) or 0)
+    required = int(elig.get('required_referrals', 7) or 7)
+    if direct_refs < required:
         return jsonify({
             'success': False,
             'code': 'not_eligible',
-            'message': f'You need {max(0, required - active_refs)} more active referrals to withdraw.',
-            'referral_count': active_refs,
+            'message': f'You need {max(0, required - direct_refs)} more direct referrals to withdraw.',
+            'referral_count': direct_refs,
             'required_count': required,
         }), 400
 
@@ -1379,6 +1951,14 @@ def api_withdrawal_submit():
         updated_at=datetime.utcnow(),
     )
     db.session.add(req)
+
+    # Activity feed: withdrawal requested (status is queued at this point).
+    _log_activity(
+        wallet_address,
+        'withdrawal_requested',
+        f'Withdrawal request submitted ({amount_int} OPN)',
+        {'amount': int(amount_int), 'chain': chain, 'fee_tx_hash': tx_hash}
+    )
     db.session.commit()
 
     return jsonify({
@@ -1406,6 +1986,10 @@ def get_referral_stats():
             'success': False,
             'message': 'User not found'
         })
+
+    # Keep this consistent with the definition used across the app:
+    # "Active" = a direct referral that has >= 2 downline referrals.
+    active_cnt = _active_referrals_count(wallet_address)
     
     conversion_rate = 0
     if user.link_clicks > 0:
@@ -1415,6 +1999,13 @@ def get_referral_stats():
         'success': True,
         'data': {
             'referral_count': user.referral_count,
+            'active_referrals_count': active_cnt,
+            'level': user.level,
+            'xp': user.xp,
+            'rank_tier': user.rank_tier,
+            'streak_current': user.streak_current,
+            'streak_longest': user.streak_longest,
+            'streak_last_date': user.streak_last_date.isoformat() if user.streak_last_date else None,
             'link_clicks': user.link_clicks,
             'link_conversions': user.link_conversions,
             'conversion_rate': conversion_rate,
@@ -1445,22 +2036,31 @@ def get_network_analysis():
     direct_referrals_count = len(direct_referrals)
     
     active_referrals_count = 0
+    # "Active" referrals: direct referrals that have >= 2 downline referrals of their own.
+    referee_wallets = [r.referee for r in direct_referrals]
+    downline_counts = {}
+    if referee_wallets:
+        rows = db.session.query(Referral.referrer, func.count(Referral.id))\
+            .filter(Referral.referrer.in_(referee_wallets))\
+            .group_by(Referral.referrer).all()
+        downline_counts = {w: int(c) for (w, c) in rows}
+
     for referral in direct_referrals:
-        claim = AirdropClaim.query.filter_by(wallet=referral.referee).first()
-        if claim:
+        if downline_counts.get(referral.referee, 0) >= 2:
             active_referrals_count += 1
     
     inactive_referrals_count = direct_referrals_count - active_referrals_count
     
-    # Total amount breakdown (include task_points as task earnings)
-    welcome_bonus = 1005.0
-    referral_earnings = float(user.referral_count * 121)
-    achievement_earnings = float(calculate_achievement_rewards(wallet_address) or 0)
-    task_earnings = float(getattr(user, 'task_points', 0) or 0)
-    claim_window_earnings = float(calculate_claim_window_earnings(wallet_address) or 0)
-    total_amount = welcome_bonus + referral_earnings + achievement_earnings + task_earnings + claim_window_earnings
+    # Total amount breakdown (include task_points as task earnings).
+    # Welcome bonus is the assigned per-wallet base reward.
+    welcome_bonus = float(int(getattr(user, 'welcome_bonus', 0) or 0))
+    referral_earnings = float(int(user.referral_count or 0) * 121)
+    achievement_earnings = float(int(calculate_achievement_rewards(wallet_address) or 0))
+    task_earnings = float(int(getattr(user, 'task_points', 0) or 0))
+    claim_window_earnings = float(int(calculate_claim_window_earnings(wallet_address) or 0))
+    total_amount = float(welcome_bonus + referral_earnings + achievement_earnings + task_earnings + claim_window_earnings)
     
-    can_withdraw = active_referrals_count >= 7
+    can_withdraw = direct_referrals_count >= 7
     available_for_withdrawal = total_amount if can_withdraw else 0
     
     return jsonify({
@@ -1480,7 +2080,7 @@ def get_network_analysis():
             },
             'can_withdraw': can_withdraw,
             'available_for_withdrawal': available_for_withdrawal,
-            'withdrawal_message': f'Need {7 - active_referrals_count} more active referrals to withdraw' if not can_withdraw else 'Eligible for withdrawal'
+            'withdrawal_message': f'Need {7 - direct_referrals_count} more active referrals to withdraw' if not can_withdraw else 'Eligible for withdrawal'
         }
     })
 
@@ -1500,6 +2100,10 @@ def get_achievements():
             'success': False,
             'message': 'User not found'
         })
+
+    # Keep this consistent with the definition used across the app:
+    # "Active" = a direct referral that has >= 2 downline referrals.
+    active_cnt = _active_referrals_count(wallet_address)
     
     unlocked_achievements = Achievement.query.filter_by(wallet=wallet_address).all()
     unlocked_ids = [a.achievement_id for a in unlocked_achievements]
@@ -1531,6 +2135,12 @@ def get_achievements():
             'total_unlocked': total_unlocked,
             'total_rewards': total_rewards,
             'referral_count': user.referral_count,
+            'active_referrals_count': active_cnt,
+            'level': user.level,
+            'xp': user.xp,
+            'rank_tier': user.rank_tier,
+            'streak_current': user.streak_current,
+            'streak_longest': user.streak_longest,
             'progress_percentage': round((total_unlocked / len(ACHIEVEMENTS)) * 100)
         }
     })
@@ -1594,6 +2204,34 @@ def track_link_click():
     })
 
 
+@app.route('/api/telegram-click', methods=['POST'])
+@limiter.limit("60 per minute")
+def telegram_click():
+    """Lightweight analytics for Telegram CTA clicks (no gating, no rewards)."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        data = {}
+    wallet = (data.get('wallet') or '').strip().lower()
+    source = (data.get('source') or '').strip()[:80]
+    deep_link = (data.get('deep_link') or '').strip()[:255]
+
+    # Reuse AnalyticsEvent to avoid schema changes.
+    ev = AnalyticsEvent(
+        event_name='telegram_click',
+        page_path=request.path,
+        page_type='app',
+        device_type=(data.get('device_type') or '')[:40],
+        source_medium=source or None,
+        cta_position='telegram_block',
+        wallet=wallet or None,
+        props_json=json.dumps({'source': source, 'deep_link': deep_link}, ensure_ascii=False) if (source or deep_link) else None
+    )
+    db.session.add(ev)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @app.route('/api/get-notifications', methods=['GET'])
 def get_notifications():
     wallet_address = request.args.get('wallet', '').strip().lower()
@@ -1623,6 +2261,32 @@ def get_notifications():
             } for n in notifications],
             'unread_count': unread_count,
             'total_count': len(notifications)
+        }
+    })
+
+
+@app.route('/api/activity', methods=['GET'])
+def api_get_activity():
+    """Return recent activity entries for a given wallet (mobile-friendly payload)."""
+    wallet_address = request.args.get('wallet', '').strip().lower()
+    try:
+        limit = int(request.args.get('limit', 10))
+    except Exception:
+        limit = 10
+    limit = max(1, min(limit, 50))
+
+    if not wallet_address:
+        return jsonify({'success': False, 'message': 'Wallet address is required'}), 400
+
+    rows = ActivityLog.query.filter_by(wallet=wallet_address) \
+        .order_by(ActivityLog.created_at.desc()) \
+        .limit(limit).all()
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'activity': [r.to_dict() for r in rows],
+            'count': len(rows)
         }
     })
 
@@ -1669,7 +2333,8 @@ def get_presale_address():
 @limiter.limit("5 per minute")
 def record_presale_contribution():
     data = request.json or {}
-    wallet_address = data.get('wallet_address', '').strip().lower()
+    # Support both POST (JSON) and GET (querystring) to avoid 405s from clients
+    wallet_address = (data.get('wallet_address') or data.get('wallet') or request.args.get('wallet_address') or request.args.get('wallet') or '').strip().lower()
     amount_eth = float(data.get('amount_eth', 0.0))
     tx_hash = data.get('tx_hash', '')
     chain_id = int(data.get('chain_id', 1))
@@ -1740,12 +2405,6 @@ def get_presale_contributions():
 # ==================== EXISTING AIRDROP ENDPOINTS ====================
 
 def _render_index():
-    # Admin quick-access link: http://localhost:5000/?admin=<ADMIN_API_KEY>
-    admin_key = request.args.get('admin')
-    if admin_key and str(admin_key) == str(ADMIN_API_KEY):
-        flask_session['is_admin'] = True
-        return redirect(url_for('admin_tasks.admin_tasks_page'))
-
     wc_project_id = os.getenv('WALLETCONNECT_PROJECT_ID','')
     sol_presale_wallet = os.getenv('SOL_PRESALE_WALLET','')
     sol_rpc_url = os.getenv('SOL_RPC_URL','').strip()
@@ -1788,6 +2447,104 @@ def _render_seo(template_name: str, *, meta_title: str, meta_description: str, h
 def index():
     # Keep the SPA as the homepage to preserve existing UX.
     return _render_index()
+
+
+# ====================
+# Referral onboarding (Phase 2, additive)
+# ====================
+
+@app.route('/r/<referral_code>')
+def referral_onboarding(referral_code: str):
+    """Referral onboarding page.
+
+    - Mobile-first orientation page with 4 CTAs (Presale, Airdrop, Staking, Telegram)
+    - Server-side click tracking (cookie guarded)
+    - If code is invalid: show a friendly error but still allow navigation
+    """
+    code = (referral_code or '').strip().upper()
+    if not code:
+        return redirect(url_for('index'))
+
+    referrer = User.query.filter_by(referral_code=code).first()
+    valid = bool(referrer)
+
+    # ---- server-side click tracking (only for valid codes) ----
+    cookie_key = f"ref_click_{code}"
+    already_counted = request.cookies.get(cookie_key) == '1'
+    if valid and not already_counted:
+        try:
+            referrer.link_clicks = int(referrer.link_clicks or 0) + 1
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    # Build 4 CTA urls
+    if valid:
+        presale_url = url_for('index') + f"?ref={code}"
+        airdrop_url = f"/airdrop?ref={code}"
+        staking_url = f"/stake?ref={code}"
+    else:
+        presale_url = url_for('index')
+        airdrop_url = "/airdrop"
+        staking_url = "/stake"
+
+    resp = make_response(render_template(
+        'referral_onboarding.html',
+        referral_code=code,
+        valid_referral=valid,
+        presale_url=presale_url,
+        airdrop_url=airdrop_url,
+        staking_url=staking_url,
+        telegram_channel_url=TELEGRAM_CHANNEL_URL_DEFAULT,
+        referrer_wallet=(getattr(referrer, 'wallet_address', None) or getattr(referrer, 'wallet', '') or '') if referrer else '',
+    ))
+    if valid and not already_counted:
+        resp.set_cookie(cookie_key, '1', max_age=30*24*60*60, samesite='Lax')
+    return resp
+
+
+
+
+@app.post("/api/track/referral")
+def track_referral_event():
+    """Anonymous analytics endpoint for the referral onboarding page."""
+    try:
+        payload = request.get_json(silent=True) or {}
+    except Exception:
+        payload = {}
+
+    code = (payload.get("referral_code") or "").strip().upper()
+    event = (payload.get("event") or "").strip()
+
+    allowed = {"landing_view", "click_presale", "click_airdrop", "click_staking", "click_telegram"}
+    if not code or event not in allowed:
+        return jsonify({"ok": False}), 400
+
+    # Hash IP for basic dedupe without storing raw IP.
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "").split(",")[0].strip()
+    salt = (os.getenv("ANALYTICS_SALT") or "opn").encode("utf-8")
+    ip_hash = None
+    try:
+        if ip:
+            ip_hash = hashlib.sha256(salt + ip.encode("utf-8")).hexdigest()
+    except Exception:
+        ip_hash = None
+
+    ua = (request.headers.get("User-Agent") or "")[:300]
+
+    try:
+        db.session.add(ReferralTrafficEvent(
+            referral_code=code,
+            event=event,
+            ua=ua,
+            ip_hash=ip_hash,
+        ))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"ok": False}), 500
+
+    return jsonify({"ok": True})
 
 
 # SEO-friendly section URLs (frontend uses these to open sections)
@@ -2092,11 +2849,12 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-@app.route('/api/check-wallet', methods=['POST'])
+@app.route('/api/check-wallet', methods=['GET','POST'])
 @limiter.limit("10 per minute")
 def check_wallet():
-    data = request.json or {}
-    wallet_address = data.get('wallet_address', '').strip()
+    data = request.get_json(silent=True) or {}
+    # Support both POST (JSON) and GET (querystring) to avoid 405s from clients
+    wallet_address = (data.get('wallet_address') or data.get('wallet') or request.args.get('wallet_address') or request.args.get('wallet') or '').strip()
     
     is_valid, wallet_or_error = AirdropSystem.validate_wallet_address(wallet_address)
     if not is_valid:
@@ -2118,9 +2876,12 @@ def check_wallet():
         
         achievement_rewards = calculate_achievement_rewards(wallet_address)
         
+        # Base amount is fixed per wallet. Prefer persisted claim value.
+        base_amount = int(getattr(claim, 'base_amount', 0) or (getattr(user, 'welcome_bonus', 0) if user else 0) or 1005)
         total_amount = AirdropSystem.calculate_airdrop_amount(
-            current_referral_count, 
-            float(achievement_rewards)
+            base_amount,
+            int(current_referral_count or 0),
+            int(achievement_rewards or 0)
         )
         
         return jsonify({
@@ -2130,9 +2891,9 @@ def check_wallet():
             'already_claimed': True,
             'claim_data': {
                 'amount': total_amount,
-                'base_amount': 1005.0,
+                'base_amount': int(base_amount),
                 'referral_bonus': current_referral_count * 121,
-                'achievement_rewards': float(achievement_rewards),
+                'achievement_rewards': int(achievement_rewards or 0),
                 'referral_count': current_referral_count,
                 'tx_hash': claim.tx_hash,
                 'timestamp': claim.claimed_at.isoformat(),
@@ -2174,6 +2935,7 @@ def check_wallet():
                 last_active=datetime.utcnow()
             )
             db.session.add(user)
+            _touch_user_activity(user, datetime.utcnow())
             
             restriction = IPRestriction.query.filter_by(ip_address=ip_address).first()
             if restriction:
@@ -2200,23 +2962,48 @@ def check_wallet():
             db.session.commit()
         else:
             referral_code = user.referral_code
-            user.last_active = datetime.utcnow()
+            _touch_user_activity(user, datetime.utcnow())
             db.session.commit()
+
+    # Assign welcome bonus ONCE on the first eligibility check.
+    base_amount = 0
+    if is_eligible and user:
+        base_amount = int(assign_welcome_bonus_if_needed(user))
     
     return jsonify({
         'success': True,
         'eligible': is_eligible,
         'message': 'Wallet is eligible for airdrop' if is_eligible else 'Not eligible: ' + ', '.join(reasons),
         'referral_code': referral_code,
-        'base_amount': 1005.0,
+        'base_amount': int(base_amount),
         'user_exists': user_exists
     })
+
+
+@app.route('/api/balances', methods=['GET'])
+@limiter.limit("60 per minute")
+def api_balances():
+    """Canonical balances endpoint for uniform dashboard display.
+
+    This endpoint is additive and does not change existing endpoint semantics.
+    The UI should use data.balances.display_total as the single source of truth
+    for the sticky balance header.
+    """
+    wallet_address = (request.args.get('wallet') or '').strip()
+    is_valid, wallet_or_error = AirdropSystem.validate_wallet_address(wallet_address)
+    if not is_valid:
+        return jsonify({'success': False, 'message': wallet_or_error, 'balances': None}), 400
+
+    wallet_address = wallet_or_error
+    balances = _compute_balances_v1(wallet_address)
+    return jsonify({'success': True, 'wallet': wallet_address, 'balances': balances})
 
 @app.route('/api/claim-airdrop', methods=['POST'])
 @limiter.limit("5 per minute")
 def claim_airdrop():
     data = request.json or {}
-    wallet_address = data.get('wallet_address', '').strip()
+    # Support both POST (JSON) and GET (querystring) to avoid 405s from clients
+    wallet_address = (data.get('wallet_address') or data.get('wallet') or request.args.get('wallet_address') or request.args.get('wallet') or '').strip()
     referral_code_used = data.get('referral_code', '').strip().upper()
     
     is_valid, wallet_or_error = AirdropSystem.validate_wallet_address(wallet_address)
@@ -2235,16 +3022,18 @@ def claim_airdrop():
         
         achievement_rewards = calculate_achievement_rewards(wallet_address)
         
+        base_amount = int(getattr(existing_claim, 'base_amount', 0) or (getattr(user, 'welcome_bonus', 0) if user else 0) or 1005)
         total_amount = AirdropSystem.calculate_airdrop_amount(
-            current_referral_count,
-            float(achievement_rewards)
+            base_amount,
+            int(current_referral_count or 0),
+            int(achievement_rewards or 0)
         )
         
         claim_data = {
             'amount': total_amount,
-            'base_amount': 1005.0,
+            'base_amount': int(base_amount),
             'referral_bonus': current_referral_count * 121,
-            'achievement_rewards': float(achievement_rewards),
+            'achievement_rewards': int(achievement_rewards or 0),
             'referral_count': current_referral_count,
             'tx_hash': existing_claim.tx_hash,
             'timestamp': existing_claim.claimed_at.isoformat()
@@ -2272,6 +3061,10 @@ def claim_airdrop():
             last_active=datetime.utcnow()
         )
         db.session.add(user)
+        _touch_user_activity(user, datetime.utcnow())
+
+    # Ensure the wallet has a persisted welcome bonus (assigned once).
+    base_amount = int(assign_welcome_bonus_if_needed(user))
     
     referrer_wallet = None
     if referral_code_used:
@@ -2307,23 +3100,41 @@ def claim_airdrop():
                 read=False
             )
             db.session.add(notification)
+
+            # Activity feed: referrer gained a new direct referral conversion.
+            _log_activity(
+                referrer_wallet,
+                'referral_joined',
+                f'New referral claimed: {wallet_address[:6]}...{wallet_address[-4:]}',
+                {'referee': wallet_address, 'code_used': referral_code_used}
+            )
     
-    base_amount = 1005.0
-    referral_count = user.referral_count
-    
-    achievement_rewards = calculate_achievement_rewards(wallet_address)
-    
+    referral_count = int(user.referral_count or 0)
+
+    # Ensure "first_claim" achievement exists BEFORE computing achievement rewards,
+    # so the claim amount and returned achievement_rewards stay consistent.
+    if Achievement.query.filter_by(wallet=wallet_address, achievement_id='first_claim').first() is None:
+        achievement = Achievement(
+            wallet=wallet_address,
+            achievement_id='first_claim'
+        )
+        db.session.add(achievement)
+        db.session.flush()  # visible within this transaction
+
+    achievement_rewards = int(calculate_achievement_rewards(wallet_address) or 0)
+
     total_amount = AirdropSystem.calculate_airdrop_amount(
-        referral_count,
-        float(achievement_rewards)
+        int(base_amount),
+        int(referral_count),
+        int(achievement_rewards)
     )
-    
+
     claim = AirdropClaim(
         wallet=wallet_address,
-        amount=total_amount,
-        base_amount=base_amount,
-        referral_bonus=referral_count * 121,
-        achievement_rewards=float(achievement_rewards),
+        amount=int(total_amount),
+        base_amount=int(base_amount),
+        referral_bonus=int(referral_count * 121),
+        achievement_rewards=int(achievement_rewards),
         referral_count=referral_count,
         referrer=referrer_wallet,
         tx_hash=AirdropSystem.generate_tx_hash(),
@@ -2331,24 +3142,25 @@ def claim_airdrop():
         status='completed'
     )
     db.session.add(claim)
-    
-    if Achievement.query.filter_by(wallet=wallet_address, achievement_id='first_claim').first() is None:
-        achievement = Achievement(
-            wallet=wallet_address,
-            achievement_id='first_claim'
-        )
-        db.session.add(achievement)
-        achievement_rewards += 1
-    
+
     notification = Notification(
+
         id=AirdropSystem.generate_notification_id(),
         wallet=wallet_address,
         type='claim',
-        message=f'✅ Successfully claimed {total_amount} OPN tokens!',
+        message=f'✅ Successfully claimed {int(total_amount)} OPN tokens!',
         timestamp=datetime.utcnow(),
         read=False
     )
     db.session.add(notification)
+
+    # Activity feed: user claimed.
+    _log_activity(
+        wallet_address,
+        'claim',
+        f'Claimed {int(total_amount)} OPN',
+        {'amount': float(total_amount)}
+    )
     
     db.session.commit()
     
@@ -2358,10 +3170,10 @@ def claim_airdrop():
         'success': True,
         'message': 'Airdrop claimed successfully!',
         'data': {
-            'amount': total_amount,
-            'base_amount': base_amount,
+            'amount': int(total_amount),
+            'base_amount': int(base_amount),
             'referral_bonus': referral_count * 121,
-            'achievement_rewards': float(achievement_rewards),
+            'achievement_rewards': int(achievement_rewards or 0),
             'referral_count': referral_count,
             'tx_hash': claim.tx_hash,
             'timestamp': claim.claimed_at.isoformat()
@@ -2386,7 +3198,8 @@ def get_leaderboard():
             claim = AirdropClaim.query.filter_by(wallet=user.wallet).first()
             
             # Keep leaderboard metric as referrals, but show a richer total tokens number.
-            total_tokens = 1005.0 + (user.referral_count * 121) + float(achievement_rewards) + task_earnings + claim_window_earnings
+            welcome_bonus = float(int(getattr(user, 'welcome_bonus', 0) or 0))
+            total_tokens = welcome_bonus + float(user.referral_count * 121) + float(achievement_rewards) + task_earnings + claim_window_earnings
             
             top_referrers.append({
                 'wallet': user.wallet,
@@ -2425,7 +3238,8 @@ def get_leaderboard():
 
                 claim = AirdropClaim.query.filter_by(wallet=current_wallet).first()
                 
-                total_tokens = 1005.0 + (current_user.referral_count * 121) + float(achievement_rewards) + task_earnings + claim_window_earnings
+                welcome_bonus = float(int(getattr(current_user, 'welcome_bonus', 0) or 0))
+                total_tokens = welcome_bonus + float(current_user.referral_count * 121) + float(achievement_rewards) + task_earnings + claim_window_earnings
                 
                 current_user_rank = {
                     'wallet': current_wallet,
@@ -2533,7 +3347,7 @@ def get_prices():
     except Exception as e:
         # On error, serve stale cache (if any) rather than failing hard.
         _PRICE_CACHE["error"] = str(e)
-        status = 200 if _PRICE_CACHE["ts"] else 503
+        status = 200  # Always return 200; include success flag + error message for offline environments
         return jsonify({
             'success': bool(_PRICE_CACHE["ts"]),
             'cached': True,
@@ -2542,13 +3356,111 @@ def get_prices():
             'error': _PRICE_CACHE["error"]
         }), status
 
+
+
+# -------------------------------
+# Compatibility / tracking endpoints
+# -------------------------------
+
+@app.route('/api/track-share', methods=['POST'])
+@limiter.limit("60 per minute")
+def track_share():
+    """Track share events from the front-end.
+
+    Intentionally lightweight: records minimal metadata when present and
+    returns a success response even if optional fields are missing.
+    """
+    data = request.get_json(silent=True) or {}
+    # These fields are optional; we keep this endpoint as a no-op if models aren't available.
+    wallet = (data.get('wallet') or data.get('wallet_address') or '').strip().lower()
+    platform = (data.get('platform') or data.get('source') or '').strip()
+    try:
+        # If an Activity model exists, we can store it; otherwise just ignore.
+        # (Avoid import errors in deployments that don't use activity logging.)
+        from activity import log_activity  # type: ignore
+        if wallet:
+            log_activity(wallet, 'share', platform or None)
+    except Exception:
+        pass
+    return jsonify({'success': True})
+
+
+@app.route('/api/v3/simple/price', methods=['GET'])
+@limiter.limit("60 per minute")
+def coingecko_simple_price_proxy():
+    """Proxy-compatible endpoint matching CoinGecko's simple/price path.
+
+    Some front-ends (or copied snippets) may accidentally call a relative
+    /api/v3/simple/price. We map it to our cached /api/prices values.
+    """
+    ids_raw = (request.args.get('ids') or 'ethereum,binancecoin,tether,solana').strip()
+    vs_raw = (request.args.get('vs_currencies') or 'usd').strip()
+    ids = [i.strip() for i in ids_raw.split(',') if i.strip()]
+    vs = [v.strip() for v in vs_raw.split(',') if v.strip()]
+
+    # Ensure cache is warm by calling the same internal fetch logic
+    # without making this endpoint fail hard if the network is unavailable.
+    try:
+        # Reuse cached values
+        prices = _PRICE_CACHE.get('data') or {}
+    except Exception:
+        prices = {}
+
+    out = {}
+    for asset in ids:
+        if asset not in prices:
+            continue
+        out[asset] = {}
+        for cur in vs:
+            # We only support usd in our cache; return None for others.
+            out[asset][cur] = prices.get(asset) if cur == 'usd' else None
+
+    return jsonify(out)
+
 # ==================== ADMIN DASHBOARD ====================
+
+# Presale admin is gated via session flag 'admin_presale'.
+# Login uses ADMIN_PRESALE_KEY (fallback to ADMIN_API_KEY).
+
+def _presale_admin_key() -> str:
+    return os.getenv('ADMIN_PRESALE_KEY') or os.getenv('ADMIN_API_KEY', 'admin123')
+
+
+@app.get('/admin/presale/login')
+def admin_presale_login_page():
+    if flask_session.get('admin_presale') is True:
+        return redirect(url_for('admin_presale_dashboard'))
+    return render_template(
+        'admin_section_login.html',
+        section_title='Admin • Presale',
+        post_url=url_for('admin_presale_login'),
+    )
+
+
+@app.post('/admin/presale/login')
+def admin_presale_login():
+    key = (request.form.get('key') or '').strip()
+    if key and str(key) == str(_presale_admin_key()):
+        flask_session['admin_presale'] = True
+        return redirect(url_for('admin_presale_dashboard'))
+    return render_template(
+        'admin_section_login.html',
+        section_title='Admin • Presale',
+        post_url=url_for('admin_presale_login'),
+        error='Invalid key',
+    ), 403
+
+
+@app.post('/admin/presale/logout')
+def admin_presale_logout():
+    flask_session.pop('admin_presale', None)
+    return redirect(url_for('admin_presale_login_page'))
+
 
 @app.route('/admin/presale', methods=['GET'])
 def admin_presale_dashboard():
-    admin_key = request.args.get('key', '')
-    if admin_key != ADMIN_API_KEY:
-        return 'Unauthorized', 401
+    if not flask_session.get('admin_presale') is True:
+        return redirect(url_for('admin_presale_login_page'))
     
     try:
         total_usd = db.session.query(db.func.sum(PresaleTransaction.usd_amount)).scalar() or 0
@@ -2585,6 +3497,9 @@ def admin_presale_dashboard():
         <body>
             <div class="container">
                 <h1>Presale Admin Dashboard</h1>
+                <form method="post" action="/admin/presale/logout" style="margin:10px 0 20px 0;">
+                    <button type="submit" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:white;cursor:pointer;">Logout</button>
+                </form>
                 <p>Presale Wallet: <code>{PRESALE_WALLET}</code></p>
                 
                 <div class="stats">
@@ -2651,13 +3566,15 @@ from models_tasks import Task, TaskSubmission, TaskRewardTransaction  # noqa: F4
 from tasks import tasks_api
 from admin_tasks import admin_tasks
 from admin_withdrawals import admin_withdrawals
+from admin_analytics import admin_analytics
+from models_referral_analytics import ReferralTrafficEvent  # noqa: F401
 
 # ==================== ANNOUNCEMENTS (WIDGET + ADMIN) ====================
 from models_announcements import Announcement, AnnouncementView  # noqa: F401
 from announcements import announcements_api
 from admin_announcements import admin_announcements
 
-# ==================== 6-HOUR CLAIM WINDOW (SPLIT MODULE) ====================
+# ==================== 1-HOUR CLAIM WINDOW (SPLIT MODULE) ====================
 from models_claims import ClaimWindowClaim, ClaimWindowState  # noqa: F401
 from claims import claims_api
 from models_push import PushSubscription  # noqa: F401
@@ -2673,6 +3590,7 @@ app.register_blueprint(admin_tasks)
 app.register_blueprint(admin_withdrawals)
 app.register_blueprint(announcements_api)
 app.register_blueprint(admin_announcements)
+app.register_blueprint(admin_analytics)
 app.register_blueprint(claims_api)
 app.register_blueprint(push_api)
 app.register_blueprint(staking_bp)
@@ -2712,6 +3630,14 @@ with app.app_context():
             'active': 'active BOOLEAN NOT NULL DEFAULT FALSE',
             'ip_address': 'ip_address VARCHAR(45)',
             'last_active': 'last_active TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'level': "level INTEGER NOT NULL DEFAULT 1",
+            'xp': "xp INTEGER NOT NULL DEFAULT 0",
+            'streak_current': "streak_current INTEGER NOT NULL DEFAULT 0",
+            'streak_longest': "streak_longest INTEGER NOT NULL DEFAULT 0",
+            'streak_last_date': "streak_last_date DATE",
+            'rank_tier': "rank_tier VARCHAR(30) NOT NULL DEFAULT 'Rookie'",
+            'welcome_bonus': f"welcome_bonus INTEGER NOT NULL DEFAULT 0",
+            'welcome_bonus_assigned_at': "welcome_bonus_assigned_at TIMESTAMP",
         })
 
         # Tasks table: some deployments may pre-date the task system.
@@ -2737,14 +3663,17 @@ with app.app_context():
             ip_address='127.0.0.1',
             last_active=datetime.utcnow()
         )
+        # Admin wallet uses a fixed welcome bonus for consistency in dashboards.
+        admin_user.welcome_bonus = 1005
+        admin_user.welcome_bonus_assigned_at = datetime.utcnow()
         db.session.add(admin_user)
         
         admin_claim = AirdropClaim(
             wallet=ADMIN_WALLET.lower(),
-            amount=10000.0,
-            base_amount=1005.0,
-            referral_bonus=0.0,
-            achievement_rewards=0.0,
+            amount=10000,
+            base_amount=1005,
+            referral_bonus=0,
+            achievement_rewards=0,
             referral_count=0,
             referrer=None,
             tx_hash='0x' + '0' * 64,
@@ -2763,7 +3692,11 @@ if __name__ == '__main__':
     print("Opinion (OPN) Presale & Airdrop Platform")
     print("=" * 60)
     print(f"Presale Wallet: {PRESALE_WALLET}")
-    print(f"Admin Dashboard: http://localhost:{port}/admin/presale?key={ADMIN_API_KEY}")
+    print(f"Admin Presale: http://localhost:{port}/admin/presale/login")
+    print(f"Admin Tasks: http://localhost:{port}/admin/tasks/login")
+    print(f"Admin Withdrawals: http://localhost:{port}/admin/withdrawals/login")
+    print(f"Admin Announcements: http://localhost:{port}/admin/announcements/login")
+    print(f"Admin Staking: http://localhost:{port}/admin/staking/login")
     print(f"Main Site: http://localhost:{port}")
     print("=" * 60)
     print(f"Achievements System: {len(ACHIEVEMENTS)} achievements")

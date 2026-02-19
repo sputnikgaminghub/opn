@@ -38,6 +38,10 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
+
+    <!-- Command Center theme overrides -->
+    <link rel="stylesheet" href="/static/themes/command_center/command.css">
+    <script src="/static/themes/command_center/command.js" defer></script>
     
     <!-- Web3 Support -->
     <style>
@@ -2595,19 +2599,6 @@ footer.site-footer {
           text-align: center;
         }
 
-
-        /* Referral badge */
-        .ref-badge{display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.14);border-radius:999px;padding:8px 10px;background:rgba(255,255,255,0.04);color:var(--text-primary);font-size:12px;line-height:1}
-        .ref-badge strong{font-weight:850}
-        .ref-badge.hidden{display:none}
-        .ref-clear{border:none;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
-        .ref-ignored{margin-left:12px;padding:8px 10px;border-radius:14px;border:1px solid rgba(255,70,90,0.35);background:rgba(255,70,90,0.08);color:#ffd1d6;font-size:12px}
-        .ref-ignored.hidden{display:none}
-        @media (max-width: 768px){
-            .ref-badge{padding:6px 8px}
-            .ref-ignored{display:none!important} /* keep header uncluttered on mobile */
-        }
-
 </style>
         
 
@@ -2618,7 +2609,7 @@ footer.site-footer {
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     
 </head>
-<body>
+<body class="cc">
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
     
@@ -2664,15 +2655,6 @@ footer.site-footer {
                     <i class="fas fa-coins"></i>
                 </a>
             </div>
-
-            <!-- Referral indicator -->
-            <div id="refBadge" class="ref-badge hidden" title="Referral applied">
-                <span>Ref: <strong id="refBadgeCode"></strong> ✅</span>
-                <button id="clearRefBtn" class="ref-clear" type="button" aria-label="Clear referral">✕</button>
-            </div>
-
-            <div id="refIgnoredBanner" class="ref-ignored hidden"></div>
-
             
             <div class="desktop-nav">
                 <a href="#" class="nav-link active" data-section="presale">
@@ -4060,43 +4042,6 @@ function initPushNotifications() {
         // ==================== REFERRAL AUTOFILL (URL -> localStorage -> input) ====================
         const REF_STORAGE_KEY = 'apro_referral_code';
 
-        function getStoredReferralCode() {
-            try { return (localStorage.getItem(REF_STORAGE_KEY) || '').trim().toUpperCase(); } catch (e) { return ''; }
-        }
-
-        function updateReferralBadge() {
-            const code = getStoredReferralCode();
-            const badge = document.getElementById('refBadge');
-            const badgeCode = document.getElementById('refBadgeCode');
-            if (!badge || !badgeCode) return;
-            if (code) {
-                badgeCode.textContent = code;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-
-            const ignored = window.__refIgnored;
-            const banner = document.getElementById('refIgnoredBanner');
-            if (banner) {
-                if (ignored && ignored.existing && ignored.incoming && ignored.existing !== ignored.incoming) {
-                    banner.textContent = `Ref already applied 🔒 ${ignored.existing} (new code ignored)`;
-                    banner.classList.remove('hidden');
-                } else {
-                    banner.classList.add('hidden');
-                }
-            }
-        }
-
-        function clearReferralCode() {
-            try { localStorage.removeItem(REF_STORAGE_KEY); } catch (e) {}
-            window.__refIgnored = null;
-            updateReferralBadge();
-            const _clr = document.getElementById('clearRefBtn');
-            if (_clr) _clr.addEventListener('click', clearReferralCode);
-        }
-
-
         function getReferralCodeFromUrl() {
             try {
                 const url = new URL(window.location.href);
@@ -4139,16 +4084,7 @@ function initPushNotifications() {
 
         function persistReferralCode(code) {
             if (!code) return;
-            try {
-                const existing = (localStorage.getItem(REF_STORAGE_KEY) || '').trim().toUpperCase();
-                const incoming = String(code).trim().toUpperCase();
-                if (!existing) {
-                    localStorage.setItem(REF_STORAGE_KEY, incoming);
-                } else if (existing !== incoming) {
-                    // overwrite only if empty (lock first-touch)
-                    window.__refIgnored = { existing, incoming };
-                }
-            } catch (e) {}
+            try { localStorage.setItem(REF_STORAGE_KEY, code); } catch (e) {}
         }
 
         function trackReferralClickOnce(code) {

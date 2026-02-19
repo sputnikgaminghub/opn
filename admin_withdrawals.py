@@ -3,27 +3,26 @@
 import os
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request, session as flask_session, Response
+from flask import Blueprint, jsonify, render_template, request, session as flask_session, Response, redirect, url_for
 from extensions import db
 from sqlalchemy import text
 
 
+
+
 def _admin_key() -> str:
-    return os.getenv("ADMIN_API_KEY", "admin123")
+    """Per-dashboard key for Withdrawals.
+
+    Backward compatibility: if ADMIN_WITHDRAWALS_KEY is not set, fall back to ADMIN_API_KEY.
+    """
+    return os.getenv("ADMIN_WITHDRAWALS_KEY") or os.getenv("ADMIN_API_KEY", "admin123")
 
 
 admin_withdrawals = Blueprint("admin_withdrawals", __name__)
 
 
 def _is_admin() -> bool:
-    return bool(flask_session.get("is_admin"))
-
-
-def _maybe_set_admin_from_key(key: str) -> bool:
-    if key and str(key) == str(_admin_key()):
-        flask_session["is_admin"] = True
-        return True
-    return _is_admin()
+    return bool(flask_session.get("admin_withdrawals"))
 
 
 def _require_admin():
@@ -32,13 +31,41 @@ def _require_admin():
     return None
 
 
+@admin_withdrawals.get("/admin/withdrawals/login")
+def admin_withdrawals_login_page():
+    if _is_admin():
+        return redirect(url_for("admin_withdrawals.admin_withdrawals_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Withdrawals",
+        post_url=url_for("admin_withdrawals.admin_withdrawals_login"),
+    )
+
+
+@admin_withdrawals.post("/admin/withdrawals/login")
+def admin_withdrawals_login():
+    key = (request.form.get("key") or "").strip()
+    if key and str(key) == str(_admin_key()):
+        flask_session["admin_withdrawals"] = True
+        return redirect(url_for("admin_withdrawals.admin_withdrawals_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Withdrawals",
+        post_url=url_for("admin_withdrawals.admin_withdrawals_login"),
+        error="Invalid key",
+    ), 403
+
+
+@admin_withdrawals.post("/admin/withdrawals/logout")
+def admin_withdrawals_logout():
+    flask_session.pop("admin_withdrawals", None)
+    return redirect(url_for("admin_withdrawals.admin_withdrawals_login_page"))
+
+
 @admin_withdrawals.get("/admin/withdrawals")
 def admin_withdrawals_page():
-    key = request.args.get("key")
-    if key:
-        _maybe_set_admin_from_key(key)
     if not _is_admin():
-        return "Forbidden", 403
+        return redirect(url_for("admin_withdrawals.admin_withdrawals_login_page"))
     return render_template("admin_withdrawals.html")
 
 
@@ -98,10 +125,37 @@ def api_admin_mark_paid(withdrawal_id: int):
     if err:
         return err
 
+    ts = datetime.utcnow()
+    row = db.session.execute(
+        text("SELECT wallet, amount, chain FROM withdrawal_requests WHERE id=:id"),
+        {"id": withdrawal_id},
+    ).mappings().first()
+    if not row:
+        return jsonify({"success": False, "error": "Not found"}), 404
+
     res = db.session.execute(
         text("UPDATE withdrawal_requests SET status='paid', updated_at=:ts WHERE id=:id"),
-        {"ts": datetime.utcnow(), "id": withdrawal_id},
+        {"ts": ts, "id": withdrawal_id},
     )
+
+    # Best-effort: append to activity logs (safe to ignore if table isn't present).
+    try:
+        db.session.execute(
+            text(
+                "INSERT INTO activity_logs (wallet, type, message, metadata_json, created_at) "
+                "VALUES (:wallet, :type, :message, :metadata_json, :created_at)"
+            ),
+            {
+                "wallet": (row.get("wallet") or "").lower(),
+                "type": "withdrawal_paid",
+                "message": f"Withdrawal marked paid ({row.get('amount')} OPN)",
+                "metadata_json": None,
+                "created_at": ts,
+            },
+        )
+    except Exception:
+        pass
+
     db.session.commit()
     if res.rowcount == 0:
         return jsonify({"success": False, "error": "Not found"}), 404
@@ -114,10 +168,36 @@ def api_admin_reject(withdrawal_id: int):
     if err:
         return err
 
+    ts = datetime.utcnow()
+    row = db.session.execute(
+        text("SELECT wallet, amount, chain FROM withdrawal_requests WHERE id=:id"),
+        {"id": withdrawal_id},
+    ).mappings().first()
+    if not row:
+        return jsonify({"success": False, "error": "Not found"}), 404
+
     res = db.session.execute(
         text("UPDATE withdrawal_requests SET status='rejected', updated_at=:ts WHERE id=:id"),
-        {"ts": datetime.utcnow(), "id": withdrawal_id},
+        {"ts": ts, "id": withdrawal_id},
     )
+
+    try:
+        db.session.execute(
+            text(
+                "INSERT INTO activity_logs (wallet, type, message, metadata_json, created_at) "
+                "VALUES (:wallet, :type, :message, :metadata_json, :created_at)"
+            ),
+            {
+                "wallet": (row.get("wallet") or "").lower(),
+                "type": "withdrawal_rejected",
+                "message": f"Withdrawal rejected ({row.get('amount')} OPN)",
+                "metadata_json": None,
+                "created_at": ts,
+            },
+        )
+    except Exception:
+        pass
+
     db.session.commit()
     if res.rowcount == 0:
         return jsonify({"success": False, "error": "Not found"}), 404

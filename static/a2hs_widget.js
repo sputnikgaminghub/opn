@@ -45,6 +45,13 @@
     return iOS || isMS;
   }
 
+  function isAndroidChrome(){
+    const ua = navigator.userAgent || "";
+    const isAndroid = /Android/i.test(ua);
+    const isChrome = /Chrome\//i.test(ua) && !/Edg\//i.test(ua) && !/OPR\//i.test(ua) && !/SamsungBrowser\//i.test(ua);
+    return isAndroid && isChrome;
+  }
+
   function ensureViewerKey(){
     let k = getStr(LS.viewerKey);
     if(!k){
@@ -158,6 +165,8 @@
       close: document.getElementById("a2hs-close"),
       add: document.getElementById("a2hs-add"),
       notnow: document.getElementById("a2hs-notnow"),
+      androidBox: document.getElementById("a2hs-android-instructions"),
+      androidOk: document.getElementById("a2hs-android-ok"),
       iosBox: document.getElementById("a2hs-ios-instructions"),
       iosOk: document.getElementById("a2hs-ios-ok")
     };
@@ -191,10 +200,19 @@
     els.notnow.classList.add("a2hs-hidden");
   }
 
+  function showAndroidInstructions(){
+    const els = getEls();
+    if(!els.androidBox) return;
+    els.androidBox.classList.remove("a2hs-hidden");
+    // hide main buttons to avoid confusion
+    els.add.classList.add("a2hs-hidden");
+    els.notnow.classList.add("a2hs-hidden");
+  }
+
   function resetMainButtons(){
     const els = getEls();
-    if(!els.iosBox) return;
-    els.iosBox.classList.add("a2hs-hidden");
+    if(els.iosBox) els.iosBox.classList.add("a2hs-hidden");
+    if(els.androidBox) els.androidBox.classList.add("a2hs-hidden");
     els.add.classList.remove("a2hs-hidden");
     els.notnow.classList.remove("a2hs-hidden");
   }
@@ -214,6 +232,12 @@
     // iOS: show instructions
     if(isIOS() && !isStandalone()){
       showIOSInstructions();
+      return;
+    }
+
+    // Android Chrome but prompt not yet available (installability heuristics not satisfied or prompt not fired yet)
+    if(isAndroidChrome() && !isStandalone()){
+      showAndroidInstructions();
       return;
     }
 
@@ -245,6 +269,11 @@
     });
 
     els.iosOk && els.iosOk.addEventListener("click", () => {
+      resetMainButtons();
+      hideOverlay(SNOOZE.notNowMs);
+    });
+
+    els.androidOk && els.androidOk.addEventListener("click", () => {
       resetMainButtons();
       hideOverlay(SNOOZE.notNowMs);
     });
@@ -285,6 +314,12 @@
 
   // ---------- init ----------
   function init(){
+    // Register service worker early so the app can satisfy PWA installability requirements.
+    // Safe to call on pages that already register it; browser will treat it as a no-op update check.
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("/static/sw.js").catch(() => {});
+    }
+
     ensureViewerKey();
     resetSessionCounterOnNewTabOpen();
     bumpVisit();

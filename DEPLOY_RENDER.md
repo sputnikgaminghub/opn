@@ -10,7 +10,11 @@ This app is Render-ready with `render.yaml`.
 
 ## 2) Set required environment variables
 In the Render dashboard for the web service, set:
-- `ADMIN_API_KEY` (required) — protects admin routes
+- `ADMIN_API_KEY` (legacy / optional) — fallback key used if a per-dashboard key is not set
+- `ADMIN_TASKS_KEY` (recommended) — tasks dashboard login key
+- `ADMIN_WITHDRAWALS_KEY` (recommended) — withdrawals dashboard login key
+- `ADMIN_ANNOUNCEMENTS_KEY` (recommended) — announcements dashboard login key
+- `ADMIN_PRESALE_KEY` (recommended) — presale dashboard login key
 - `ADMIN_WALLET` (optional) — wallet used for admin bootstrap (defaults to the value in `render.yaml`)
 - `ETH_RPC_URL` (required for ETH fee validation)
 - `BSC_RPC_URL` (required for BSC fee validation)
@@ -66,8 +70,9 @@ Notes:
 Set these on the **web** service (and worker if you add it):
 - `STAKE_HOLDING_WALLET_ETH` = your ETH holding wallet
 - `STAKE_HOLDING_WALLET_BSC` = your BSC holding wallet
-- `STAKE_ADMIN_GATE_KEY` = gate key for /admin/stake?key=...
-- `STAKE_ADMIN_PASSWORD` = staking admin password
+- `ADMIN_STAKING_KEY` = staking admin login key for `/admin/staking/login`
+
+  (Back-compat: the code will also read `STAKE_ADMIN_GATE_KEY` if `ADMIN_STAKING_KEY` is not set.)
 - `STAKE_REWARD_PER_ETH_PER_DAY` (default 200)
 - `STAKE_REWARD_PER_BNB_PER_DAY` (default 50)
 - `STAKE_ETH_CONFIRMATIONS` (default 12)
@@ -83,3 +88,9 @@ Use the same DATABASE_URL and env vars as the web service.
 
 ## Important
 - Set `SECRET_KEY` on Render (required for sessions / staking login).
+
+## Session hardening (recommended)
+- `SESSION_LIFETIME_HOURS` (default: 1)
+- `SESSION_IDLE_TIMEOUT_MINUTES` (default: 15)
+- `SESSION_COOKIE_SAMESITE` (default: Lax)
+- Optional server-side sessions: set `USE_SERVER_SIDE_SESSIONS=1` and `SESSION_REDIS_URL` (or `REDIS_URL`)

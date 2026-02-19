@@ -30,10 +30,14 @@
 <body>
   <div class="topbar">
     <h1>Admin • Announcements</h1>
+<form method="post" action="/admin/announcements/logout" style="margin:12px 0;">
+  <button type="submit" style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:white;cursor:pointer;">Logout</button>
+</form>
+
     <div class="pill">
       Quick links:
-      <a href="/admin/tasks?key={{ request.args.get('key','') }}">Tasks</a> •
-      <a href="/admin/withdrawals?key={{ request.args.get('key','') }}">Withdrawals</a>
+      <a href="/admin/tasks">Tasks</a> •
+      <a href="/admin/withdrawals">Withdrawals</a>
     </div>
   </div>
 

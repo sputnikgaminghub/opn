@@ -13,6 +13,7 @@
         </div>
         <div class="stake-actions">
           <button class="stake-btn stake-icon-btn" onclick="toggleStakeTheme()" title="Toggle theme">☾</button>
+          <div id="stakeRefBadge" class="stake-ref-badge" style="display:none;" title="Referral applied"><span>Ref: <strong id="stakeRefCode"></strong> ✅</span></div>
           {% if wallet %}
             <div class="stake-pill">
               <span class="stake-dot ok"></span>
@@ -50,6 +51,35 @@
 <script defer src="/static/stake/stake.js?v={{ static_ver }}"></script>
 
 <script>
+(function(){
+  const KEY="apro_referral_code";
+  const params=new URLSearchParams(window.location.search);
+  const incoming=(params.get("ref")||params.get("referral")||params.get("r")||params.get("code")||"").trim().toUpperCase();
+  function getStored(){ try{return (localStorage.getItem(KEY)||"").trim().toUpperCase();}catch(e){return "";} }
+  // overwrite only if empty
+  if(incoming){
+    try{
+      const existing=getStored();
+      if(!existing){ localStorage.setItem(KEY,incoming); }
+    }catch(e){}
+    // analytics: count as engagement if user lands on staking with a ref
+    try{
+      const onceKey="ref_evt_stake_"+incoming;
+      if(!sessionStorage.getItem(onceKey)){
+        sessionStorage.setItem(onceKey,"1");
+        fetch("/api/track/referral",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({referral_code:incoming,event:"click_staking"})}).catch(()=>{});
+        console.log("[ref-analytics] click_staking", incoming);
+      }
+    }catch(e){}
+  }
+  // badge
+  try{
+    const code=getStored();
+    const b=document.getElementById("stakeRefBadge");
+    const c=document.getElementById("stakeRefCode");
+    if(b && c && code){ c.textContent=code; b.style.display="flex"; }
+  }catch(e){}
+})();
 async function stakeLogout(){
   await fetch("/api/stake/logout", {method:"POST"});
   window.location.href = "/stake";

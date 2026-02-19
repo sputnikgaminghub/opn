@@ -1,0 +1,110 @@
+{% extends "seo_base.html" %}
+{% block content %}
+<style>
+  .adm-wrap{max-width:1100px;margin:24px auto;padding:0 14px;}
+  .adm-card{background:#111126;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin-bottom:14px;}
+  .adm-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  .adm-h1{font-size:22px;margin:0 0 6px 0;}
+  .adm-muted{color:#a0a0c0;font-size:13px;}
+  .adm-btn{border:1px solid rgba(255,255,255,.14);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
+  .adm-btn.primary{background:#6c63ff;border-color:#6c63ff;}
+  .adm-in{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:10px 12px;min-width:110px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:13px;}
+  th{color:#cfcfff;font-weight:750;}
+  .pill{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:6px 10px;font-size:12px;}
+</style>
+
+<div class="adm-wrap">
+  <div class="adm-card">
+    <div class="adm-row">
+      <div>
+        <h1 class="adm-h1">Referral Onboarding Analytics</h1>
+        <div class="adm-muted">Anonymous clickstream from /r/&lt;code&gt; (views + CTA clicks). Use this to compare funnels.</div>
+      </div>
+      <div class="adm-row" style="justify-content:flex-end;">
+        <label class="adm-muted" for="daysSel">Window</label>
+        <select id="daysSel" class="adm-in">
+          <option value="7">7d</option>
+          <option value="14" selected>14d</option>
+          <option value="30">30d</option>
+          <option value="60">60d</option>
+          <option value="90">90d</option>
+        </select>
+        <button class="adm-btn primary" onclick="loadAnalytics()">Refresh</button>
+        <button class="adm-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div id="meta" class="adm-muted" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-row">
+      <div class="pill">Events: landing_view • click_presale • click_airdrop • click_staking • click_telegram</div>
+      <div class="adm-muted">Tip: “click_presale / landing_view” approximates presale CTA rate.</div>
+    </div>
+    <div style="overflow:auto;">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Referral code</th>
+            <th>Views</th>
+            <th>Presale clicks</th>
+            <th>Airdrop clicks</th>
+            <th>Staking clicks</th>
+            <th>Telegram clicks</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+async function logout(){
+  await fetch("/admin/analytics/logout", {method:"POST"});
+  window.location.href = "/admin/analytics/login";
+}
+
+function safe(n){ return (n && Number.isFinite(n)) ? n : 0; }
+
+async function loadAnalytics(){
+  const days = document.getElementById("daysSel").value;
+  const r = await fetch("/api/admin/analytics/referrals?days=" + encodeURIComponent(days));
+  if(!r.ok){
+    document.getElementById("meta").textContent = "Failed to load (unauthorized?)";
+    return;
+  }
+  const j = await r.json();
+  document.getElementById("meta").textContent = "Since: " + (j.since || "") + " • Window: " + (j.days || days) + " days";
+
+  const tbody = document.querySelector("#tbl tbody");
+  tbody.innerHTML = "";
+  const data = j.data || {};
+  const codes = Object.keys(data);
+
+  codes.sort((a,b)=>{
+    const av = safe(data[a]?.landing_view);
+    const bv = safe(data[b]?.landing_view);
+    return bv - av;
+  });
+
+  for(const code of codes){
+    const row = data[code] || {};
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="pill">${code}</span></td>
+      <td>${safe(row.landing_view)}</td>
+      <td>${safe(row.click_presale)}</td>
+      <td>${safe(row.click_airdrop)}</td>
+      <td>${safe(row.click_staking)}</td>
+      <td>${safe(row.click_telegram)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadAnalytics);
+</script>
+{% endblock %}

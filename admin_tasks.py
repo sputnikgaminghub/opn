@@ -1,10 +1,10 @@
 """Admin task dashboard + admin APIs.
 
-Admin access rules (per spec):
-- Admin can elevate session by visiting /?admin=<_admin_key()>
-- Also allow direct access to /admin/tasks?key=<_admin_key()> (consistent with presale admin)
+Admin access rules:
+- Each dashboard has its own login endpoint and key (separate access for security).
+- Tasks dashboard uses ADMIN_TASKS_KEY (fallback to ADMIN_API_KEY for backward compatibility).
 
-We store an "is_admin" flag in the flask session after key validation.
+We store an 'admin_tasks' flag in the flask session after key validation.
 
 Routes:
 - GET  /admin/tasks
@@ -21,13 +21,18 @@ import re
 from datetime import datetime
 import os
 
-from flask import Blueprint, jsonify, render_template, request, session as flask_session
+from flask import Blueprint, jsonify, render_template, request, session as flask_session, redirect, url_for
 from extensions import db
 from sqlalchemy import and_, text
 
+
+
 def _admin_key() -> str:
-    """Read the admin key from environment (falls back to admin123 for local dev)."""
-    return os.getenv("ADMIN_API_KEY", "admin123")
+    """Read the per-dashboard admin key from environment.
+
+    Backward compatibility: if ADMIN_TASKS_KEY is not set, fall back to ADMIN_API_KEY.
+    """
+    return os.getenv("ADMIN_TASKS_KEY") or os.getenv("ADMIN_API_KEY", "admin123")
 
 
 from models_tasks import (
@@ -46,33 +51,52 @@ _WALLET_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
 
 def _is_admin() -> bool:
-    return bool(flask_session.get("is_admin"))
-
-
-def _maybe_set_admin_from_key(key: str) -> bool:
-    """Validate key and, if valid, set admin session."""
-    if key and str(key) == str(_admin_key()):
-        flask_session["is_admin"] = True
-        return True
-    return _is_admin()
+    return bool(flask_session.get("admin_tasks"))
 
 
 def _require_admin():
+
     if not _is_admin():
         return jsonify({"success": False, "error": "Admin access required"}), 403
     return None
 
 
+
+@admin_tasks.get("/admin/tasks/login")
+def admin_tasks_login_page():
+    if _is_admin():
+        return redirect(url_for("admin_tasks.admin_tasks_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Tasks",
+        post_url=url_for("admin_tasks.admin_tasks_login"),
+    )
+
+
+@admin_tasks.post("/admin/tasks/login")
+def admin_tasks_login():
+    key = (request.form.get("key") or "").strip()
+    if key and str(key) == str(_admin_key()):
+        flask_session["admin_tasks"] = True
+        return redirect(url_for("admin_tasks.admin_tasks_page"))
+    return render_template(
+        "admin_section_login.html",
+        section_title="Admin • Tasks",
+        post_url=url_for("admin_tasks.admin_tasks_login"),
+        error="Invalid key",
+    ), 403
+
+
+@admin_tasks.post("/admin/tasks/logout")
+def admin_tasks_logout():
+    flask_session.pop("admin_tasks", None)
+    return redirect(url_for("admin_tasks.admin_tasks_login_page"))
+
+
 @admin_tasks.get("/admin/tasks")
 def admin_tasks_page():
-    # Allow /admin/tasks?key=...
-    key = request.args.get("key")
-    if key:
-        _maybe_set_admin_from_key(key)
-
     if not _is_admin():
-        return "Forbidden", 403
-
+        return redirect(url_for("admin_tasks.admin_tasks_login_page"))
     return render_template("admin_tasks.html")
 
 
@@ -110,9 +134,20 @@ def api_admin_create_task():
     if reward < 0:
         return jsonify({"success": False, "error": "reward must be >= 0"}), 400
 
-    task = Task(title=title, description=description, task_link=(task_link or None), reward=reward, is_active=is_active)
+    task = Task(
+        title=title,
+        description=description,
+        task_link=(task_link or None),
+        reward=reward,
+        is_active=is_active,
+    )
     db.session.add(task)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Return a useful error instead of a generic 500.
+        return jsonify({"success": False, "error": f"Database error while creating task: {str(e)}"}), 500
 
     return jsonify({"success": True, "task": task.to_dict()})
 
@@ -128,20 +163,53 @@ def api_admin_update_task(task_id: int):
         return jsonify({"success": False, "error": "Task not found"}), 404
 
     data = request.get_json(silent=True) or {}
+    return _apply_task_update(task, data)
+
+
+@admin_tasks.post("/api/admin/tasks/<int:task_id>")
+def api_admin_update_task_post(task_id: int):
+    """POST variant of update for hosts/proxies that mishandle PUT."""
+    err = _require_admin()
+    if err:
+        return err
+
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({"success": False, "error": "Task not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    return _apply_task_update(task, data)
+
+
+def _apply_task_update(task: Task, data: dict):
+    """Apply validated updates to a task and commit."""
 
     if "title" in data:
         task.title = (data.get("title") or "").strip() or task.title
     if "description" in data:
         task.description = (data.get("description") or "").strip() or task.description
     if "reward" in data:
+        reward_val = data.get("reward")
+        if reward_val is None:
+            return jsonify({"success": False, "error": "reward is required"}), 400
         try:
-            task.reward = int(data.get("reward"))
+            task.reward = int(reward_val)
         except Exception:
             return jsonify({"success": False, "error": "reward must be an integer"}), 400
+
+    # Allow updating task_link from the admin UI.
+    if "task_link" in data:
+        task_link = (data.get("task_link") or "").strip()
+        task.task_link = task_link or None
     if "is_active" in data:
         task.is_active = bool(data.get("is_active"))
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Database error while updating task: {str(e)}"}), 500
+
     return jsonify({"success": True, "task": task.to_dict()})
 
 
