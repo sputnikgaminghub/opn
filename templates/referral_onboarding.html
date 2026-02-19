@@ -441,7 +441,7 @@
         <div class="card">
             <!-- Brand + Referral with copy -->
             <div class="brand-row">
-                <div class="logo">Opinion Labs</div>
+                <div class="logo">Opinion</div>
                 <div class="ref-pill">
                     <span class="mono">{{ referral_code }}</span>
                     {% if valid_referral %}
@@ -458,7 +458,7 @@
             <!-- Dynamic header -->
             {% if valid_referral %}
                 <h1>You’re invited 🎉</h1>
-                <p class="lead">Pick where to start. Your referral will be saved and auto-applied across Presale, Airdrop and Staking.</p>
+                <p class="lead">Pick one to start. Your ref code will be saved & auto-applied across the site.</p>
             {% else %}
                 <h1>Referral not found</h1>
                 <p class="lead">This referral code isn’t recognized. You can still continue to the site normally.</p>
@@ -487,7 +487,7 @@
                         <span class="feature-title">Airdrop</span>
                     </div>
                     <div class="feature-desc">121 OPN per referral</div>
-                    <div class="feature-stats">Unlock ≥7 referrals</div>
+                    <div class="feature-stats">Withdrawal Unlock ≥7 refs</div>
                     <div class="warning-note">
                         <i class="fas fa-exclamation-triangle"></i> 1 account/device · only completed claims
                     </div>
@@ -498,9 +498,11 @@
                         <i class="fas fa-piggy-bank"></i>
                         <span class="feature-title">Staking</span>
                     </div>
-                    <div class="feature-desc">Daily OPN earnings</div>
-                    <div class="feature-stats">200 ETH / 50 BNB</div>
-                </div>
+                    <div class="feature-desc">Earn OPN daily by staking</div>
+                    <div class="feature-stats">
+                        <span class="stat-item"><i class="fab fa-ethereum"></i> 200 OPN / ETH / day</span>
+                        <span class="stat-item"><i class="fas fa-coins"></i> 50 OPN / BNB / day</span>
+                    </div>
             </div>
 
             <!-- Action buttons: always two columns -->
