@@ -2,333 +2,624 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opinion (OPN) | Presale & Airdrop Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Opinion (OPN) · Referral Onboarding</title>
     
-    <!-- ========== FAVICON ========== -->
+    <!-- Favicon & Preconnects -->
     <link rel="icon" type="image/png" href="/static/img/favicon-32.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="preconnect" href="https://translate.google.com" crossorigin>
-    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
     
-    <!-- ========== OPEN GRAPH & SOCIAL META TAGS ========== -->
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Open Graph & Meta (keep original) -->
     <meta property="og:title" content="Opinion (OPN) | Presale & Airdrop Platform">
     <meta property="og:description" content="Join the Opinion (OPN) presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
     <meta property="og:image" content="https://i.postimg.cc/mZzVqpRt/PRESALE-IS-LIVE.png">
     <meta property="og:url" content="https://opiniondrop.onrender.com/">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Opinion (OPN)">
-    
-    <!-- ========== TWITTER CARD ========== -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Opinion (OPN) | Presale & Airdrop Platform">
-    <meta name="twitter:description" content="Join the Opinion (OPN) presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
-    <meta name="twitter:image" content="https://i.postimg.cc/mZzVqpRt/PRESALE-IS-LIVE.png">
-    <meta name="twitter:site" content="@opinionlabsxyz">
-    
-    <!-- ========== ADDITIONAL META TAGS ========== -->
     <meta name="description" content="Join the Opinion (OPN) ICO, presale and airdrop platform. Be among the first to own OPN tokens with exclusive early-bird bonuses.">
-    <meta name="keywords" content="Opinion (OPN), Opinion (OPN) cryptocurrency, Opinion (OPN) presale, Opinion (OPN) airdrop, Ethereum, blockchain, Opinion (OPN) token, crypto, Opinion (OPN) ICO">
-    <meta name="author" content="Opinion (OPN)">
     
-    <!-- ========== EXISTING STYLESHEETS & SCRIPTS ========== -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
-    
-    <!-- Web3 Support -->
     <style>
-    :root{
-      --bg:#0b0f19;
-      --card:#121a2a;
-      --text:#e6edf7;
-      --muted:#a7b4c7;
-      --accent:#3b82f6;
-      --border:rgba(255,255,255,0.08);
-      --shadow:0 10px 30px rgba(0,0,0,0.35);
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 600px at 20% 0%, rgba(59,130,246,0.25), transparent 60%), var(--bg);
-      color:var(--text);
-    }
-    .wrap{
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 20px 16px 44px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding: 10px 4px 18px;
-    }
-    .brand .logo{
-      font-weight: 800;
-      letter-spacing: 0.4px;
-      font-size: 16px;
-      opacity: 0.95;
-    }
-    .pill{
-      border:1px solid var(--border);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .card{
-      background: rgba(18,26,42,0.92);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
-    }
-    h1{
-      font-size: 22px;
-      line-height: 1.2;
-      margin: 0 0 10px;
-    }
-    p{
-      margin: 0 0 12px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-    .steps{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin: 14px 0 18px;
-    }
-    .step{
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      background: rgba(255,255,255,0.02);
-      display:flex;
-      gap: 10px;
-    }
-    .num{
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: rgba(59,130,246,0.18);
-      display:grid;
-      place-items:center;
-      color: var(--text);
-      font-weight: 700;
-      flex: 0 0 28px;
-    }
-    .step b{color:var(--text)}
-    .actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top: 14px;
-    }
-    .btn{
-      appearance:none;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-weight: 700;
-      text-decoration:none;
-      color: var(--text);
-      background: rgba(255,255,255,0.03);
-      flex: 1 1 220px;
-      text-align:center;
-    }
-    .btn.primary{
-      background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(99,102,241,0.95));
-      border-color: rgba(59,130,246,0.4);
-    }
-    .btn:active{transform: translateY(1px)}
-    .fine{
-      font-size: 12px;
-      color: rgba(167,180,199,0.85);
-      margin-top: 12px;
-    }
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-    @media (min-width: 520px){
-      h1{font-size:26px}
-      .card{padding:22px}
-    }
-  
+        /* ---------- RESET & VARIABLES ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .lead{margin:0 0 14px;color:var(--muted);line-height:1.45}
-    .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
-    .feature{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:14px}
-    .feature-title{font-weight:850;font-size:14px;display:flex;align-items:center;gap:8px}
-    .feature-sub{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
-    .bullets{margin:12px 0 0 18px;padding:0;color:var(--text);font-size:13px;line-height:1.45}
-    .bullets li{margin:6px 0}
-    .tag{font-size:11px;border-radius:999px;padding:4px 8px;border:1px solid var(--border);color:var(--muted)}
-    .tag.rec{border-color:rgba(59,130,246,.55);color:#cfe1ff}
-    .warn{margin-top:10px;color:#ff465a;font-size:12px;line-height:1.35;font-weight:650}
-    .actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
-    .btn{display:flex;align-items:center;justify-content:center;text-decoration:none;padding:12px 14px;border-radius:14px;border:1px solid var(--border);color:var(--text);font-weight:800;background:rgba(255,255,255,0.02)}
-    .btn.primary{background:var(--accent);border-color:var(--accent);color:white}
-    .btn.ghost{background:transparent}
-    .fine{margin-top:14px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
-    .fine-link{color:#cfe1ff;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.25)}
-    .ok{color:#38FF7A;font-weight:850;margin-left:6px}
-    .bad{color:#ff465a;font-weight:850;margin-left:8px}
-    .lock-msg{margin:10px 0 0;background:rgba(255,70,90,0.08);border:1px solid rgba(255,70,90,0.35);padding:10px 12px;border-radius:14px;color:#ffd1d6;font-size:13px;line-height:1.35;text-align:center}
-    @media (max-width: 940px){
-      .feature-grid{grid-template-columns:1fr}
-      .actions{grid-template-columns:1fr}
-    }
+        :root {
+            --bg-dark: #0a0c14;
+            --card-bg: rgba(18, 26, 42, 0.75);
+            --card-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #f0f4fa;
+            --text-muted: #a1b2cd;
+            --accent: #4f8eff;
+            --accent-glow: rgba(79, 142, 255, 0.4);
+            --success: #2ed573;
+            --warning: #ff6b81;
+            --radius-card: 24px;
+            --radius-element: 16px;
+            --radius-pill: 999px;
+            --shadow-card: 0 20px 40px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+            --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --ease-out: cubic-bezier(0.2, 0, 0, 1);
+            --transition-fast: 160ms;
+            --transition-base: 240ms;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(140% 80% at 0% 0%, #1e2b47 0%, #0b0f1a 80%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 12px;
+            background-size: 200% 200%;
+            animation: bgShift 20s ease infinite;
+        }
+
+        @keyframes bgShift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        .wrap {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* ---------- CARD ---------- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: clamp(16px, 4vw, 24px);
+            transition: transform var(--transition-base) var(--ease-out);
+            animation: cardEntrance 500ms var(--ease-out);
+        }
+
+        @keyframes cardEntrance {
+            0% { opacity: 0; transform: translateY(12px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ---------- BRAND & REFERRAL PILL ---------- */
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff, #bdd3ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .ref-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-pill);
+            padding: 4px 10px 4px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            backdrop-filter: blur(4px);
+        }
+
+        .ref-pill .mono {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ref-pill .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .badge.valid {
+            background: rgba(46, 213, 115, 0.15);
+            color: var(--success);
+        }
+        .badge.invalid {
+            background: rgba(255, 107, 129, 0.15);
+            color: var(--warning);
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            transition: all var(--transition-fast) ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .copy-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.1);
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ---------- HEADER ---------- */
+        h1 {
+            font-size: clamp(1.6rem, 6vw, 2rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .lead {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+            max-width: 85%;
+        }
+
+        /* ---------- FEATURE GRID (mobile stacks, desktop 3 columns) ---------- */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 24px 0 16px;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-element);
+            padding: 12px 10px;
+            transition: transform var(--transition-base) var(--ease-spring), border-color var(--transition-base);
+            backdrop-filter: blur(4px);
+        }
+
+        .feature:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .feature-header i {
+            font-size: 1.1rem;
+            color: var(--accent);
+            background: rgba(79, 142, 255, 0.1);
+            padding: 6px;
+            border-radius: 10px;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rec-tag {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: rgba(79, 142, 255, 0.2);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(79, 142, 255, 0.3);
+            letter-spacing: 0.3px;
+        }
+
+        .feature-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .feature-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .stat-item {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+        }
+        .stat-item i {
+            font-size: 0.7rem;
+            color: var(--accent);
+        }
+        .feature-note {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding-left: 4px;
+        }
+
+        .warning-note {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            color: var(--warning);
+            background: rgba(255, 107, 129, 0.1);
+            padding: 6px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 107, 129, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ---------- ACTION BUTTONS (always 2 columns) ---------- */
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 8px;
+            border-radius: var(--radius-element);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-primary);
+            backdrop-filter: blur(8px);
+            transition: all var(--transition-fast) var(--ease-spring);
+            cursor: pointer;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .btn i {
+            font-size: 0.9rem;
+        }
+
+        .btn.primary {
+            background: linear-gradient(145deg, var(--accent), #3b6ed6);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 20px rgba(79, 142, 255, 0.25);
+        }
+
+        .btn.primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 12px 28px rgba(79, 142, 255, 0.4);
+        }
+
+        .btn.ghost {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.ghost:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* ---------- FOOTER ---------- */
+        .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 16px;
+            margin-top: 4px;
+        }
+
+        .inviter {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-family: monospace;
+        }
+
+        .fine-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+            transition: color var(--transition-fast);
+        }
+        .fine-link:hover {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
+        }
+
+        /* ---------- LOCK MESSAGE ---------- */
+        .lock-msg {
+            background: rgba(255, 107, 129, 0.1);
+            border: 1px solid rgba(255, 107, 129, 0.2);
+            border-radius: var(--radius-pill);
+            padding: 8px 14px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #ffb8c1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 240ms ease, transform 240ms var(--ease-spring);
+        }
+        .lock-msg.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .lock-msg i {
+            color: var(--warning);
+        }
+
+        /* ---------- MOBILE OPTIMIZATIONS ---------- */
+        @media (max-width: 600px) {
+            .feature-grid {
+                grid-template-columns: 1fr; /* stack on mobile */
+                gap: 8px;
+            }
+            .lead {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .btn {
+                padding: 10px 4px;
+                font-size: 0.75rem;
+                white-space: normal;
+            }
+            .brand-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
     </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <div class="logo">Opinion Labs</div>
-      <div class="pill">
-        Referral: <span class="mono">{{ referral_code }}</span>
-        {% if valid_referral %}
-          <span class="ok">✅</span>
-        {% else %}
-          <span class="bad">Invalid</span>
-        {% endif %}
-      </div>
+    <div class="wrap">
+        <div class="card">
+            <!-- Brand + Referral with copy -->
+            <div class="brand-row">
+                <div class="logo">Opinion Labs</div>
+                <div class="ref-pill">
+                    <span class="mono">{{ referral_code }}</span>
+                    {% if valid_referral %}
+                        <span class="badge valid"><i class="fas fa-check"></i></span>
+                    {% else %}
+                        <span class="badge invalid"><i class="fas fa-times"></i></span>
+                    {% endif %}
+                    <button class="copy-btn" onclick="copyReferralCode()" title="Copy referral code">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic header -->
+            {% if valid_referral %}
+                <h1>You’re invited 🎉</h1>
+                <p class="lead">Pick where to start. Your referral will be saved and auto-applied across Presale, Airdrop and Staking.</p>
+            {% else %}
+                <h1>Referral not found</h1>
+                <p class="lead">This referral code isn’t recognized. You can still continue to the site normally.</p>
+            {% endif %}
+
+            <!-- Lock message container (JS controlled) -->
+            <div id="refLockMsg" class="lock-msg" style="display: none;">
+                <i class="fas fa-lock"></i> <span></span>
+            </div>
+
+            <!-- Feature grid with full details -->
+            <div class="feature-grid">
+                <!-- Presale -->
+                <div class="feature">
+                    <div class="feature-header">
+                        <i class="fas fa-rocket"></i>
+                        <span class="feature-title">Presale <span class="rec-tag">RECOMMENDED</span></span>
+                    </div>
+                    <div class="feature-desc">Early‑bird bonus tiers + discount price</div>
+                    <div class="feature-stats">
+                        <span class="stat-item"><i class="fas fa-percent"></i> +20% / +25% / +30%</span>
+                    </div>
+                    <div class="feature-note">Presale pricing shown on dashboard</div>
+                </div>
+                <!-- Airdrop -->
+                <div class="feature">
+                    <div class="feature-header">
+                        <i class="fas fa-gift"></i>
+                        <span class="feature-title">Airdrop</span>
+                    </div>
+                    <div class="feature-desc">Eligibility + referral rewards</div>
+                    <div class="feature-stats">
+                        <span class="stat-item"><i class="fas fa-coins"></i> 121 OPN per referral</span>
+                        <span class="stat-item"><i class="fas fa-lock-open"></i> Withdraw unlock: 7+ referrals</span>
+                    </div>
+                    <div class="warning-note">
+                        <i class="fas fa-exclamation-triangle"></i> One account per device. Only completed claims count.
+                    </div>
+                </div>
+                <!-- Staking -->
+                <div class="feature">
+                    <div class="feature-header">
+                        <i class="fas fa-piggy-bank"></i>
+                        <span class="feature-title">Staking</span>
+                    </div>
+                    <div class="feature-desc">Earn OPN daily by staking</div>
+                    <div class="feature-stats">
+                        <span class="stat-item"><i class="fab fa-ethereum"></i> 200 OPN / ETH / day</span>
+                        <span class="stat-item"><i class="fas fa-coins"></i> 50 OPN / BNB / day</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons: always two columns -->
+            <div class="actions">
+                <a class="btn primary" id="btnPresale" href="{{ presale_url }}"><i class="fas fa-rocket"></i> Presale</a>
+                <a class="btn" id="btnAirdrop" href="{{ airdrop_url }}"><i class="fas fa-gift"></i> Airdrop</a>
+                <a class="btn" id="btnStaking" href="{{ staking_url }}"><i class="fas fa-piggy-bank"></i> Staking</a>
+                <a class="btn ghost" id="tgJoinBtn" href="{{ telegram_channel_url }}" target="_blank" rel="noopener"><i class="fab fa-telegram-plane"></i> Telegram</a>
+            </div>
+
+            <!-- Footer with inviter and fallback link -->
+            <div class="footer">
+                {% if valid_referral and referrer_wallet %}
+                    <span class="inviter"><i class="fas fa-user-astronaut"></i> {{ referrer_wallet[:6] }}…{{ referrer_wallet[-4:] }}</span>
+                {% else %}
+                    <span></span>
+                {% endif %}
+                <a href="/" class="fine-link">Continue without referral →</a>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-      {% if valid_referral %}
-        <h1 style="margin-bottom:6px;">You’re invited 🎉</h1>
-        <p class="lead">Pick where to start. Your referral will be saved and auto-applied across Presale, Airdrop and Staking.</p>
-      {% else %}
-        <h1 style="margin-bottom:6px;">Referral not found</h1>
-        <p class="lead">This referral code isn’t recognized. You can still continue to the site normally.</p>
-      {% endif %}
+    <script>
+        (function() {
+            const REF_STORAGE_KEY = "apro_referral_code";
+            const referralCode = "{{ referral_code }}".trim().toUpperCase();
+            const valid = {{ "true" if valid_referral else "false" }};
 
-      <div id="refLockMsg" class="lock-msg" style="display:none;"></div>
+            // Helper to get stored code
+            function getStored() {
+                try { return (localStorage.getItem(REF_STORAGE_KEY) || "").trim().toUpperCase(); } 
+                catch(e) { return ""; }
+            }
 
-      <div class="feature-grid">
-        <div class="feature">
-          <div class="feature-top">
-            <div class="feature-title">Presale <span class="tag rec">Recommended</span></div>
-            <div class="feature-sub">Early-bird bonus tiers + discount price</div>
-          </div>
-          <ul class="bullets">
-            <li>Tier bonuses: <b>+20%</b> / <b>+25%</b> / <b>+30%</b></li>
-            <li>Presale pricing shown on the dashboard</li>
-          </ul>
-        </div>
+            // Store only if empty
+            function storeIfEmpty(code) {
+                if (!code || !valid) return { stored: false, ignored: false };
+                try {
+                    const existing = getStored();
+                    if (!existing) {
+                        localStorage.setItem(REF_STORAGE_KEY, code);
+                        return { stored: true, ignored: false };
+                    }
+                    if (existing !== code) {
+                        return { stored: false, ignored: true, existing: existing, incoming: code };
+                    }
+                    return { stored: false, ignored: false };
+                } catch(e) {
+                    return { stored: false, ignored: false };
+                }
+            }
 
-        <div class="feature">
-          <div class="feature-top">
-            <div class="feature-title">Airdrop</div>
-            <div class="feature-sub">Eligibility + referral rewards</div>
-          </div>
-          <ul class="bullets">
-            <li>Earn <b>121 OPN</b> per referral (completed claims)</li>
-            <li>Withdraw unlock: <b>7+</b> referrals</li>
-          </ul>
-          <div class="warn">⚠️ One account per device. Link clicks don’t count — only completed claims.</div>
-        </div>
+            // Track events
+            async function track(eventName) {
+                if (!valid) return;
+                try {
+                    await fetch("/api/track/referral", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ referral_code: referralCode, event: eventName })
+                    });
+                } catch(e) { /* ignore */ }
+            }
 
-        <div class="feature">
-          <div class="feature-top">
-            <div class="feature-title">Staking</div>
-            <div class="feature-sub">Earn OPN daily by staking</div>
-          </div>
-          <ul class="bullets">
-            <li><b>200 OPN</b> / ETH / day</li>
-            <li><b>50 OPN</b> / BNB / day</li>
-          </ul>
-        </div>
-      </div>
+            // Handle storage & lock message
+            const res = storeIfEmpty(referralCode);
+            const lockMsg = document.getElementById("refLockMsg");
+            if (lockMsg && res.ignored) {
+                lockMsg.style.display = "flex";
+                lockMsg.querySelector("span").innerHTML = `Ref already applied <strong>${res.existing}</strong> (new code ignored)`;
+                requestAnimationFrame(() => lockMsg.classList.add("show"));
+            }
 
-      <div class="actions">
-        <a class="btn primary" id="btnPresale" href="{{ presale_url }}">Go to Presale</a>
-        <a class="btn" id="btnAirdrop" href="{{ airdrop_url }}">Go to Airdrop</a>
-        <a class="btn" id="btnStaking" href="{{ staking_url }}">Go to Staking</a>
-        <a class="btn ghost" id="tgJoinBtn" href="{{ telegram_channel_url }}" target="_blank" rel="noopener">Join Telegram</a>
-      </div>
+            // Track page view
+            track("landing_view");
 
-      <div class="fine">
-        {% if valid_referral and referrer_wallet %}
-          Invited by: <span class="mono">{{ referrer_wallet[:6] }}…{{ referrer_wallet[-4:] }}</span>
-        {% endif %}
-        <span style="opacity:.65;">•</span>
-        <a href="/" class="fine-link">Continue without referral</a>
-      </div>
-    </div>
-  </div>
+            // Attach click tracking
+            const trackMap = {
+                "btnPresale": "click_presale",
+                "btnAirdrop": "click_airdrop",
+                "btnStaking": "click_staking",
+                "tgJoinBtn": "click_telegram"
+            };
+            Object.entries(trackMap).forEach(([id, ev]) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener("click", () => track(ev));
+            });
 
-<script>
-(function(){
-  const REF_STORAGE_KEY = "apro_referral_code";
-  const referralCode = "{{ referral_code }}".trim().toUpperCase();
-  const valid = {{ "true" if valid_referral else "false" }};
-
-  function getStored(){
-    try { return (localStorage.getItem(REF_STORAGE_KEY) || "").trim().toUpperCase(); } catch(e) { return ""; }
-  }
-  function storeIfEmpty(code){
-    if(!code || !valid) return {stored:false, ignored:false};
-    try{
-      const existing = getStored();
-      if(!existing){
-        localStorage.setItem(REF_STORAGE_KEY, code);
-        return {stored:true, ignored:false};
-      }
-      if(existing !== code){
-        return {stored:false, ignored:true, existing, incoming:code};
-      }
-      return {stored:false, ignored:false};
-    }catch(e){
-      return {stored:false, ignored:false};
-    }
-  }
-
-  async function track(eventName){
-    if(!valid) return;
-    console.log("[ref-analytics]", eventName, referralCode);
-    try{
-      await fetch("/api/track/referral", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({referral_code: referralCode, event: eventName})
-      });
-    }catch(e){}
-  }
-
-  // Persist (overwrite only if empty)
-  const res = storeIfEmpty(referralCode);
-
-  // Show lock message if needed
-  const lock = document.getElementById("refLockMsg");
-  if(lock && res && res.ignored){
-    lock.style.display = "block";
-    lock.innerHTML = 'Ref already applied 🔒 <b>' + (res.existing || "") + '</b> (new code ignored)';
-  }
-
-  // Track view
-  track("landing_view");
-
-  // Hook clicks
-  const map = [
-    ["btnPresale","click_presale"],
-    ["btnAirdrop","click_airdrop"],
-    ["btnStaking","click_staking"],
-    ["tgJoinBtn","click_telegram"],
-  ];
-  map.forEach(([id,ev])=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener("click", ()=>track(ev), {capture:true});
-  });
-})();
-</script>
+            // Copy referral code function
+            window.copyReferralCode = function() {
+                const code = "{{ referral_code }}".trim();
+                if (!code) return;
+                navigator.clipboard.writeText(code).then(() => {
+                    const btn = document.querySelector('.copy-btn i');
+                    if (!btn) return;
+                    const original = btn.className;
+                    btn.className = 'fas fa-check';
+                    setTimeout(() => btn.className = original, 1500);
+                }).catch(() => {
+                    alert('Press Ctrl+C to copy');
+                });
+            };
+        })();
+    </script>
 </body>
 </html>
