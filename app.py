@@ -23,12 +23,6 @@ except Exception:
 from urllib import request as urlrequest
 from urllib.error import URLError
 
-from flask import Flask, redirect
-
-@app.route('/')
-@app.route('/<path:path>')  # Catch all paths
-def redirect_to_new_domain(path=''):
-    return redirect(f"https://yournewdomain.com/{path}", code=301)
 # -------------------------------
 # Simple JSON-RPC helper (no web3.py)
 # -------------------------------
