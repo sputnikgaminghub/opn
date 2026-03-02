@@ -1,4 +1,14 @@
-from dotenv import load_dotenv
+from flask import Flask, redirect, request
+
+app = Flask(__name__)
+
+@app.before_request
+def redirect_to_new_domain():
+    new_domain = "https://opiniontoken.org"
+    if request.host != "https://opiniontoken.org/":
+        return redirect(new_domain, code=301)
+        
+        from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for, make_response
 from flask_cors import CORS
