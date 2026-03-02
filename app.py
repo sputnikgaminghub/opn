@@ -1,14 +1,4 @@
-from flask import Flask, redirect, request
-
-app = Flask(__name__)
-
-@app.before_request
-def redirect_to_new_domain():
-    new_domain = "https://opiniontoken.org"
-    if request.host != "https://opiniontoken.org/":
-        return redirect(new_domain, code=301)
-        
-        from dotenv import load_dotenv
+from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for, make_response
 from flask_cors import CORS
@@ -157,6 +147,17 @@ load_dotenv()
 from extensions import db
 
 app = Flask(__name__)
+# -------------------------------
+# FORCE DOMAIN REDIRECT
+# -------------------------------
+from flask import redirect
+
+@app.before_request
+def force_redirect_to_new_domain():
+    target_domain = "mysite.com"
+    if request.host and request.host != target_domain:
+        return redirect(f"https://{target_domain}" + request.full_path, code=301)
+
 
 # --- Ensure SECRET_KEY for sessions (required by staking signature login) ---
 secret_key = os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY')
