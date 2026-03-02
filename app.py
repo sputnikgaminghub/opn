@@ -156,7 +156,7 @@ from flask import redirect
 def force_redirect_to_new_domain():
     target_domain = "opiniontoken.org"
     if request.host and request.host != target_domain:
-        return redirect(f"https://{target_domain}" + request.full_path, code=301)
+        return redirect(f"https://opiniontoken.org" + request.full_path, code=301)
 
 
 # --- Ensure SECRET_KEY for sessions (required by staking signature login) ---
