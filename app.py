@@ -154,7 +154,7 @@ from flask import redirect
 
 @app.before_request
 def force_redirect_to_new_domain():
-    target_domain = "mysite.com"
+    target_domain = "https://opiniontoken.org"
     if request.host and request.host != target_domain:
         return redirect(f"https://{target_domain}" + request.full_path, code=301)
 
