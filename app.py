@@ -147,17 +147,6 @@ load_dotenv()
 from extensions import db
 
 app = Flask(__name__)
-# -------------------------------
-# FORCE DOMAIN REDIRECT
-# -------------------------------
-from flask import redirect
-
-@app.before_request
-def force_redirect_to_new_domain():
-    target_domain = "opiniontoken.org"
-    if request.host and request.host != target_domain:
-        return redirect(f"https://opiniontoken.org" + request.full_path, code=301)
-
 
 # --- Ensure SECRET_KEY for sessions (required by staking signature login) ---
 secret_key = os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY')
