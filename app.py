@@ -2796,9 +2796,7 @@ def sitemap_xml():
 def add_robots_headers(resp):
     # Ensure app/admin are not indexed even if linked
     path = request.path or ""
-    noindex_paths = {
-        '/', '/airdrop', '/tokenomics', '/roadmap', '/partners', '/team'
-    }
+    noindex_paths = { '/tokenomics', '/roadmap', '/partners', '/team'}
     if path in noindex_paths or path.startswith('/app') or path.startswith('/admin') or path.startswith('/api'):
         resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
     return resp
