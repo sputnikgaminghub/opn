@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block common junk paths (optional future protection)
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+
+# Sitemap location
+Sitemap: https://opn-qc9p.onrender.com/sitemap.xml
