@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset 
-  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <!-- Homepage -->
   <url>
@@ -11,69 +10,102 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Legal Pages -->
-<url>
-<loc>https://opn-qc9p.onrender.com/learn</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/airdrop</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/presale</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/how-it-works</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/referral-program</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/withdrawals</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/faq</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/security</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/tokenomics</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/roadmap</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/partners</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/team</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/about</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/contact</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/privacy</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
-<url>
-<loc>https://opn-qc9p.onrender.com/learn/terms</loc>
-<lastmod>2026-03-09</lastmod>
-</url>
+  <!-- Learn section -->
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/about</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/airdrop</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/contact</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/faq</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/how-it-works</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/partners</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/presale</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/privacy</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/referral-program</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/roadmap</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/security</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/team</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/terms</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/tokenomics</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://opn-qc9p.onrender.com/learn/withdrawals</loc>
+    <lastmod>2026-03-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
 </urlset>
